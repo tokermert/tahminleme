@@ -147,6 +147,8 @@ export default function Home() {
                   ["👑", "Admin Paneli", "Oda kurucusu sonuçları girer, puanlar otomatik hesaplanır."],
                   ["📈", "Detaylı İstatistik", "Grup bazlı doğru/yanlış, isabet yüzdesi, progress bar'lı sıralama."],
                   ["📤", "Kolay Paylaşım", "Tek tıkla oda kodu + link WhatsApp'a veya panoya kopyalanır."],
+                  ["🤖", "Otomatik Sonuçlar", "Sistem maç bitiminde sonuçları otomatik girer, puanlar anında güncellenir."],
+                  ["🏅", "Kupayı Kim Kazanır", "Şampiyonu ve finalisti tahmin et. Doğru şampiyon 10 puan, doğru finalist 5 puan."],
                 ].map(([emoji, title, desc], i) => (
                   <div key={i} className="flex gap-3 items-start p-3 rounded-xl bg-pitch-800 border border-pitch-700">
                     <span className="text-xl flex-shrink-0 mt-0.5">{emoji}</span>

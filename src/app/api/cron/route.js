@@ -65,10 +65,11 @@ export async function GET(request) {
   try {
     // FIFA World Cup 2026 maçlarını çek (league=1, season=2026)
     const res = await fetch(
-      "https://v3.football.api-sports.io/fixtures?league=1&season=2026",
+      "https://api-football-v1.p.rapidapi.com/v3/fixtures?league=1&season=2026",
       {
         headers: {
-          "x-apisports-key": apiKey,
+          "x-rapidapi-key": apiKey,
+          "x-rapidapi-host": "api-football-v1.p.rapidapi.com",
         },
       }
     );

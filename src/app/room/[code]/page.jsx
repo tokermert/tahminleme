@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { supabase, getPlayerId, getPlayerName, setPlayerName } from "@/lib/supabase";
-import { GROUPS, FLAGS, shortName, getMatches, matchKey, GROUP_KEYS, SCHEDULE, formatTR, isLocked, getSortedMatches, calculateScores } from "@/lib/matches";
+import { GROUPS, FLAGS, shortName, getMatches, matchKey, GROUP_KEYS, SCHEDULE, formatTR, isLocked, getSortedMatches, calculateScores, ALL_TEAMS } from "@/lib/matches";
 
 function JoinPrompt({ room, code, playerId }) {
   const [name, setName] = useState("");
@@ -53,6 +53,8 @@ export default function RoomPage({ params }) {
   const [qualifyPreds, setQualifyPreds] = useState({});
   const [matchResults, setMatchResults] = useState({});
   const [qualifyResults, setQualifyResults] = useState({});
+  const [cupPreds, setCupPreds] = useState({});
+  const [cupResult, setCupResult] = useState(null);
   const [view, setView] = useState("matches");
   const [activeGroup, setActiveGroup] = useState("A");
   const [loading, setLoading] = useState(true);
@@ -70,11 +72,13 @@ export default function RoomPage({ params }) {
 
   // ── Veri yükleme ──
   const loadAll = useCallback(async (roomId) => {
-    const [predRes, qpRes, mrRes, qrRes] = await Promise.all([
+    const [predRes, qpRes, mrRes, qrRes, cpRes, crRes] = await Promise.all([
       supabase.from("predictions").select("*").eq("room_id", roomId),
       supabase.from("qualify_predictions").select("*").eq("room_id", roomId),
       supabase.from("match_results").select("*"),
       supabase.from("qualify_results").select("*"),
+      supabase.from("cup_predictions").select("*").eq("room_id", roomId),
+      supabase.from("cup_results").select("*").eq("id", 1).single(),
     ]);
 
     const pMap = {};
@@ -95,6 +99,12 @@ export default function RoomPage({ params }) {
     const qrMap = {};
     (qrRes.data || []).forEach(r => { qrMap[r.group_letter] = r; });
     setQualifyResults(qrMap);
+
+    const cpMap = {};
+    (cpRes.data || []).forEach(r => { cpMap[r.player_id] = r; });
+    setCupPreds(cpMap);
+
+    setCupResult(crRes.data || null);
   }, []);
 
   useEffect(() => {
@@ -129,6 +139,12 @@ export default function RoomPage({ params }) {
         })
         .on("postgres_changes", { event: "*", schema: "public", table: "room_members", filter: `room_id=eq.${rm.id}` }, () => {
           supabase.from("room_members").select("*").eq("room_id", rm.id).order("joined_at").then(r => setMembers(r.data || []));
+        })
+        .on("postgres_changes", { event: "*", schema: "public", table: "cup_predictions", filter: `room_id=eq.${rm.id}` }, (p) => {
+          setCupPreds(prev => ({ ...prev, [p.new.player_id]: p.new }));
+        })
+        .on("postgres_changes", { event: "*", schema: "public", table: "cup_results" }, (p) => {
+          setCupResult(p.new);
         })
         .subscribe();
 
@@ -219,6 +235,45 @@ export default function RoomPage({ params }) {
     }
   }
 
+  async function saveCupPred(field, team) {
+    if (!room) return;
+    if (cupResult?.winner) return; // Sonuç girildiyse kilitli
+    const cur = cupPreds[playerId] || {};
+    const updated = { ...cur, room_id: room.id, player_id: playerId };
+    if (field === "winner") {
+      updated.winner = cur.winner === team ? null : team;
+    } else if (field === "finalist1") {
+      updated.finalist1 = cur.finalist1 === team ? null : team;
+      if (updated.finalist2 === team) updated.finalist2 = null;
+    } else {
+      updated.finalist2 = cur.finalist2 === team ? null : team;
+      if (updated.finalist1 === team) updated.finalist1 = null;
+    }
+    await supabase.from("cup_predictions").upsert(
+      { ...updated, updated_at: new Date().toISOString() },
+      { onConflict: "room_id,player_id" }
+    );
+  }
+
+  async function saveCupResult(field, team) {
+    if (!isAdmin) return;
+    const cur = cupResult || {};
+    const updated = { id: 1, ...cur };
+    if (field === "winner") {
+      updated.winner = cur.winner === team ? null : team;
+    } else if (field === "finalist1") {
+      updated.finalist1 = cur.finalist1 === team ? null : team;
+      if (updated.finalist2 === team) updated.finalist2 = null;
+    } else {
+      updated.finalist2 = cur.finalist2 === team ? null : team;
+      if (updated.finalist1 === team) updated.finalist1 = null;
+    }
+    await supabase.from("cup_results").upsert(
+      { ...updated, updated_at: new Date().toISOString() },
+      { onConflict: "id" }
+    );
+  }
+
   function handleShare() {
     const url = `${window.location.origin}/room/${code}`;
     const text = `⚽ WC 2026 Tahmin Yarışması\n🎟️ Oda: ${room.name}\n📋 Kod: ${code}\n👉 ${url}`;
@@ -247,6 +302,23 @@ export default function RoomPage({ params }) {
 
   // ── Skor hesaplama ──
   const scores = calculateScores(members, predictions, qualifyPreds, matchResults, qualifyResults);
+  // Kupa puanları ekle
+  if (cupResult?.winner) {
+    members.forEach(m => {
+      const cp = cupPreds[m.player_id];
+      if (!scores[m.player_id]) return;
+      if (cp?.winner === cupResult.winner) scores[m.player_id].pts += 10;
+    });
+  }
+  if (cupResult?.finalist1 && cupResult?.finalist2) {
+    const finalists = [cupResult.finalist1, cupResult.finalist2];
+    members.forEach(m => {
+      const cp = cupPreds[m.player_id];
+      if (!scores[m.player_id] || !cp) return;
+      if (cp.finalist1 && finalists.includes(cp.finalist1)) scores[m.player_id].pts += 5;
+      if (cp.finalist2 && finalists.includes(cp.finalist2)) scores[m.player_id].pts += 5;
+    });
+  }
   const sorted = [...members].sort((a, b) => (scores[b.player_id]?.pts || 0) - (scores[a.player_id]?.pts || 0));
 
   return (
@@ -302,7 +374,7 @@ export default function RoomPage({ params }) {
 
       {/* ── NAV ── */}
       <div className="flex gap-1.5 px-4 mb-4">
-        {[["matches","🎯 Maçlar"],["qualify","🏆 Gruplar"],["scoreboard","📊 Detay"]].map(([v,label]) => (
+        {[["matches","🎯 Maçlar"],["qualify","🏆 Sıralama"],["cup","🏅 Kupa"],["scoreboard","📊 Detay"]].map(([v,label]) => (
           <button key={v} onClick={() => setView(v)} style={{
             flex:1, padding:"12px 6px", border:"none", borderRadius:10, cursor:"pointer",
             background:view===v?"linear-gradient(135deg,#c9a84c,#a67c2e)":"#1e293b",
@@ -312,7 +384,7 @@ export default function RoomPage({ params }) {
       </div>
 
       {/* ── GRUP TABS ── */}
-      {view !== "scoreboard" && (
+      {view !== "scoreboard" && view !== "cup" && (
         <div className="flex flex-wrap gap-1.5 px-4 mb-5 justify-center">
           {GROUP_KEYS.map(g => (
             <button key={g} onClick={() => setActiveGroup(g)} style={{
@@ -566,6 +638,102 @@ export default function RoomPage({ params }) {
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* ═══ CUP ═══ */}
+      {view === "cup" && (
+        <div className="px-4">
+          <div style={{ borderRadius:14, overflow:"hidden", border:"1px solid #1e293b", background:"#111827" }}>
+            <div style={{ padding:"14px 18px", background:"linear-gradient(135deg,#3b1f00,#0f172a)", borderBottom:"2px solid #c9a84c30" }}>
+              <span style={{ fontSize:16, fontWeight:900, color:"#c9a84c" }}>🏅 KUPAY​I KİM KAZANIR?</span>
+            </div>
+            <div style={{ padding:18 }}>
+
+              {/* Admin sonuç girişi */}
+              {isAdmin && (
+                <div style={{ marginBottom:22, padding:16, borderRadius:12, background:"#0a1628", border:"1px solid #1e293b" }}>
+                  <div style={{ fontSize:14, fontWeight:800, color:"#16a34a", marginBottom:14 }}>🏆 GERÇEK SONUÇ</div>
+                  {[
+                    ["winner", "🏆 Şampiyon", cupResult?.winner],
+                    ["finalist1", "⭐ Finalist 1", cupResult?.finalist1],
+                    ["finalist2", "⭐ Finalist 2", cupResult?.finalist2],
+                  ].map(([field, label, val]) => (
+                    <div key={field} style={{ marginBottom:10 }}>
+                      <div style={{ fontSize:14, fontWeight:700, color:"#94a3b8", marginBottom:6 }}>{label}</div>
+                      <div style={{ display:"flex", gap:4, flexWrap:"wrap" }}>
+                        {ALL_TEAMS.map(t => (
+                          <button key={t} onClick={() => saveCupResult(field, t)} style={{
+                            padding:"4px 8px", borderRadius:6, cursor:"pointer", fontSize:13,
+                            border:val===t?"2px solid #16a34a":"1px solid #334155",
+                            background:val===t?"#16a34a20":"transparent",
+                            color:val===t?"#4ade80":"#64748b", fontWeight:val===t?700:400,
+                          }}>{FLAGS[t]} {shortName(t)}</button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Oyuncu tahminleri */}
+              {members.map(member => {
+                const cp = cupPreds[member.player_id] || {};
+                const c = pc(member.player_id);
+                const isMe = member.player_id === playerId;
+                const hasResult = !!cupResult?.winner;
+                return (
+                  <div key={member.player_id} style={{
+                    marginBottom:12, padding:16, borderRadius:12,
+                    background:`${c.bg}08`, border:`1px solid ${c.bg}30`,
+                  }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:14 }}>
+                      <div style={{ width:10, height:10, borderRadius:5, background:c.bg }}/>
+                      <span style={{ fontSize:16, fontWeight:900, color:c.ring }}>{member.name}</span>
+                    </div>
+
+                    {[
+                      ["winner", "🏆 Şampiyon", cp.winner, 10],
+                      ["finalist1", "⭐ Finalist 1", cp.finalist1, 5],
+                      ["finalist2", "⭐ Finalist 2", cp.finalist2, 5],
+                    ].map(([field, label, val, pts]) => {
+                      const isCorrect = field === "winner"
+                        ? (hasResult && val === cupResult?.winner)
+                        : (cupResult?.finalist1 && cupResult?.finalist2 && val && [cupResult.finalist1, cupResult.finalist2].includes(val));
+                      const isWrong = field === "winner"
+                        ? (hasResult && val && val !== cupResult?.winner)
+                        : (cupResult?.finalist1 && cupResult?.finalist2 && val && ![cupResult.finalist1, cupResult.finalist2].includes(val));
+                      return (
+                        <div key={field} style={{ marginBottom:10 }}>
+                          <div style={{ fontSize:13, fontWeight:700, color:"#94a3b8", marginBottom:4 }}>
+                            {label} ({pts}p)
+                            {isCorrect && <span style={{ color:"#4ade80", marginLeft:6 }}>✅</span>}
+                            {isWrong && <span style={{ color:"#f87171", marginLeft:6 }}>❌</span>}
+                          </div>
+                          <div style={{ display:"flex", gap:4, flexWrap:"wrap" }}>
+                            {ALL_TEAMS.map(t => {
+                              const a = val === t;
+                              return (
+                                <button key={t} disabled={!isMe || hasResult}
+                                  onClick={() => saveCupPred(field, t)} style={{
+                                  padding:"3px 7px", borderRadius:6, fontSize:12,
+                                  cursor:isMe&&!hasResult?"pointer":"default",
+                                  opacity:!isMe && !val ? 0.3 : 1,
+                                  border:a?`2px solid ${c.bg}`:"1px solid #334155",
+                                  background:a?`${c.bg}20`:"transparent",
+                                  color:a?c.ring:"#64748b", fontWeight:a?700:400,
+                                }}>{FLAGS[t]} {shortName(t)}</button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}

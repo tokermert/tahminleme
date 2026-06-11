@@ -219,3 +219,6 @@ export function calculateScores(members, predictions, qualifyPreds, matchResults
 
   return scores;
 }
+
+// Tüm 48 takım (grup sırasıyla)
+export const ALL_TEAMS = Object.values(GROUPS).flat();
