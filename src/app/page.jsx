@@ -11,10 +11,24 @@ export default function Home() {
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [myRooms, setMyRooms] = useState([]);
 
   useEffect(() => {
     const saved = getPlayerName();
     if (saved) setName(saved);
+    const pid = getPlayerId();
+    if (pid) {
+      supabase
+        .from("room_members")
+        .select("room_id, name, rooms(id, code, name)")
+        .eq("player_id", pid)
+        .then(({ data }) => {
+          if (data) {
+            const rooms = data.filter(d => d.rooms).map(d => ({ id: d.rooms.id, code: d.rooms.code, name: d.rooms.name }));
+            setMyRooms(rooms);
+          }
+        });
+    }
   }, []);
 
   function genCode() {
@@ -97,6 +111,26 @@ export default function Home() {
             <button onClick={() => setMode("join")} className={`${btn} bg-pitch-700 text-slate-300 border border-pitch-600`}>
               🎟️ Odaya Katıl
             </button>
+
+            {/* Odalarım */}
+            {myRooms.length > 0 && (
+              <div className="mt-6 pt-5 border-t border-pitch-700">
+                <h2 className="text-[16px] font-black text-slate-300 mb-3">🏠 Odalarım</h2>
+                <div className="space-y-2">
+                  {myRooms.map(r => (
+                    <button key={r.id} onClick={() => router.push(`/room/${r.code}`)}
+                      className="w-full flex items-center gap-3 p-4 rounded-xl bg-pitch-800 border border-pitch-700 cursor-pointer text-left hover:border-gold-400 transition-all">
+                      <span className="text-2xl">⚽</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[15px] font-bold text-white truncate">{r.name}</div>
+                        <div className="text-[13px] text-slate-500 font-mono tracking-widest">{r.code}</div>
+                      </div>
+                      <span className="text-[14px] text-slate-500">→</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Oyun Özellikleri */}
             <div className="mt-8 pt-6 border-t border-pitch-700">
