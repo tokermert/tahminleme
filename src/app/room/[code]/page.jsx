@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback, use } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { supabase, getPlayerId, getPlayerName, setPlayerName } from "@/lib/supabase";
 import { GROUPS, FLAGS, shortName, getMatches, matchKey, GROUP_KEYS, SCHEDULE, formatTR, isLocked, getSortedMatches, calculateScores } from "@/lib/matches";
@@ -34,18 +34,18 @@ function JoinPrompt({ room, code, playerId }) {
 }
 
 const COLORS = [
-  { bg:"#3b82f6", ring:"#60a5fa", dark:"#1e3a5f" },
-  { bg:"#f59e0b", ring:"#fbbf24", dark:"#5c3d0e" },
-  { bg:"#10b981", ring:"#34d399", dark:"#0f3d2e" },
-  { bg:"#ec4899", ring:"#f472b6", dark:"#5c1a3e" },
-  { bg:"#8b5cf6", ring:"#a78bfa", dark:"#3b1f6e" },
-  { bg:"#06b6d4", ring:"#22d3ee", dark:"#0e4a5c" },
-  { bg:"#ef4444", ring:"#f87171", dark:"#5c1a1a" },
-  { bg:"#84cc16", ring:"#a3e635", dark:"#2e5c0e" },
+  { bg: "#3b82f6", ring: "#60a5fa", dark: "#1e3a5f" },
+  { bg: "#f59e0b", ring: "#fbbf24", dark: "#5c3d0e" },
+  { bg: "#10b981", ring: "#34d399", dark: "#0f3d2e" },
+  { bg: "#ec4899", ring: "#f472b6", dark: "#5c1a3e" },
+  { bg: "#8b5cf6", ring: "#a78bfa", dark: "#3b1f6e" },
+  { bg: "#06b6d4", ring: "#22d3ee", dark: "#0e4a5c" },
+  { bg: "#ef4444", ring: "#f87171", dark: "#5c1a1a" },
+  { bg: "#84cc16", ring: "#a3e635", dark: "#2e5c0e" },
 ];
 
 export default function RoomPage({ params }) {
-  const { code } = use(params);
+  const { code } = params;
   const router = useRouter();
   const [room, setRoom] = useState(null);
   const [members, setMembers] = useState([]);
@@ -252,7 +252,7 @@ export default function RoomPage({ params }) {
   return (
     <div className="pb-8">
       {/* ── HEADER ── */}
-      <div className="text-center pt-6 pb-4 px-5" style={{ background:"linear-gradient(180deg,#162033,#0b1120)" }}>
+      <div className="text-center pt-6 pb-4 px-5" style={{ background: "linear-gradient(180deg,#162033,#0b1120)" }}>
         <p className="text-[13px] font-black tracking-[3px] text-gold-400 uppercase">FIFA World Cup 2026</p>
         <h1 className="text-xl font-black text-white mt-1">{room.name}</h1>
         <div className="flex items-center justify-center gap-3 mt-3">
@@ -266,29 +266,29 @@ export default function RoomPage({ params }) {
       {/* ── SKOR KARTLARI ── */}
       <div className="px-4 mt-4 mb-5 flex flex-col gap-2">
         {sorted.map((m, i) => {
-          const v = scores[m.player_id] || { mc:0, mw:0, qc:0, pts:0 };
+          const v = scores[m.player_id] || { mc: 0, mw: 0, qc: 0, pts: 0 };
           const c = pc(m.player_id);
-          const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i+1}.`;
+          const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i + 1}.`;
           const isMe = m.player_id === playerId;
           return (
             <div key={m.player_id} style={{
-              display:"flex", alignItems:"center", gap:14,
-              padding:"14px 18px", borderRadius:14,
-              background:`linear-gradient(135deg, ${c.dark}, #111827)`,
-              border:`1.5px solid ${c.bg}${isMe?"80":"40"}`,
+              display: "flex", alignItems: "center", gap: 14,
+              padding: "14px 18px", borderRadius: 14,
+              background: `linear-gradient(135deg, ${c.dark}, #111827)`,
+              border: `1.5px solid ${c.bg}${isMe ? "80" : "40"}`,
             }}>
-              <div style={{ fontSize:26, flexShrink:0 }}>{medal}</div>
-              <div style={{ flex:1, minWidth:0 }}>
-                <div style={{ fontSize:16, fontWeight:900, color:c.ring }}>
-                  {m.name} {isMe && <span style={{ fontSize:14, color:"#475569" }}>(sen)</span>}
+              <div style={{ fontSize: 26, flexShrink: 0 }}>{medal}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 16, fontWeight: 900, color: c.ring }}>
+                  {m.name} {isMe && <span style={{ fontSize: 14, color: "#475569" }}>(sen)</span>}
                 </div>
-                <div style={{ fontSize:14, color:"#94a3b8", marginTop:2 }}>
+                <div style={{ fontSize: 14, color: "#94a3b8", marginTop: 2 }}>
                   ✅ {v.mc} &nbsp; ❌ {v.mw} &nbsp; 📊 {v.oc} &nbsp; 🏆 {v.qc}
                 </div>
               </div>
-              <div style={{ textAlign:"right", flexShrink:0 }}>
-                <div style={{ fontSize:34, fontWeight:900, color:"#fff", lineHeight:1 }}>{v.pts}</div>
-                <div style={{ fontSize:14, color:c.ring, fontWeight:700 }}>PUAN</div>
+              <div style={{ textAlign: "right", flexShrink: 0 }}>
+                <div style={{ fontSize: 34, fontWeight: 900, color: "#fff", lineHeight: 1 }}>{v.pts}</div>
+                <div style={{ fontSize: 14, color: c.ring, fontWeight: 700 }}>PUAN</div>
               </div>
             </div>
           );
@@ -297,11 +297,11 @@ export default function RoomPage({ params }) {
 
       {/* ── NAV ── */}
       <div className="flex gap-1.5 px-4 mb-4">
-        {[["matches","🎯 Maçlar"],["qualify","🏆 Gruplar"],["scoreboard","📊 Detay"]].map(([v,label]) => (
+        {[["matches", "🎯 Maçlar"], ["qualify", "🏆 Gruplar"], ["scoreboard", "📊 Detay"]].map(([v, label]) => (
           <button key={v} onClick={() => setView(v)} style={{
-            flex:1, padding:"12px 6px", border:"none", borderRadius:10, cursor:"pointer",
-            background:view===v?"linear-gradient(135deg,#c9a84c,#a67c2e)":"#1e293b",
-            color:view===v?"#0b1120":"#94a3b8", fontWeight:700, fontSize:14,
+            flex: 1, padding: "12px 6px", border: "none", borderRadius: 10, cursor: "pointer",
+            background: view === v ? "linear-gradient(135deg,#c9a84c,#a67c2e)" : "#1e293b",
+            color: view === v ? "#0b1120" : "#94a3b8", fontWeight: 700, fontSize: 14,
           }}>{label}</button>
         ))}
       </div>
@@ -311,10 +311,10 @@ export default function RoomPage({ params }) {
         <div className="flex flex-wrap gap-1.5 px-4 mb-5 justify-center">
           {GROUP_KEYS.map(g => (
             <button key={g} onClick={() => setActiveGroup(g)} style={{
-              width:"calc(25% - 6px)", padding:"10px 0", borderRadius:10, cursor:"pointer",
-              border:activeGroup===g?"2px solid #c9a84c":"1px solid #1e293b",
-              background:activeGroup===g?"#c9a84c18":"#1e293b",
-              color:activeGroup===g?"#c9a84c":"#64748b", fontWeight:800, fontSize:15, textAlign:"center",
+              width: "calc(25% - 6px)", padding: "10px 0", borderRadius: 10, cursor: "pointer",
+              border: activeGroup === g ? "2px solid #c9a84c" : "1px solid #1e293b",
+              background: activeGroup === g ? "#c9a84c18" : "#1e293b",
+              color: activeGroup === g ? "#c9a84c" : "#64748b", fontWeight: 800, fontSize: 15, textAlign: "center",
             }}>{g}</button>
           ))}
         </div>
@@ -323,11 +323,11 @@ export default function RoomPage({ params }) {
       {/* ═══ MATCHES ═══ */}
       {view === "matches" && (
         <div className="px-4">
-          <div style={{ padding:"14px 18px", borderRadius:"14px 14px 0 0", background:"linear-gradient(135deg,#1e293b,#0f172a)", borderBottom:"2px solid #c9a84c30", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-            <span style={{ fontSize:16, fontWeight:900, color:"#c9a84c" }}>GRUP {activeGroup}</span>
-            <span style={{ fontSize:18 }}>{GROUPS[activeGroup].map(t => FLAGS[t]).join(" ")}</span>
+          <div style={{ padding: "14px 18px", borderRadius: "14px 14px 0 0", background: "linear-gradient(135deg,#1e293b,#0f172a)", borderBottom: "2px solid #c9a84c30", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontSize: 16, fontWeight: 900, color: "#c9a84c" }}>GRUP {activeGroup}</span>
+            <span style={{ fontSize: 18 }}>{GROUPS[activeGroup].map(t => FLAGS[t]).join(" ")}</span>
           </div>
-          <div style={{ background:"#111827", border:"1px solid #1e293b", borderTop:"none", borderRadius:"0 0 14px 14px", overflow:"hidden" }}>
+          <div style={{ background: "#111827", border: "1px solid #1e293b", borderTop: "none", borderRadius: "0 0 14px 14px", overflow: "hidden" }}>
             {getSortedMatches(activeGroup, GROUPS[activeGroup]).map(([t1, t2], idx, arr) => {
               const mk = matchKey(activeGroup, t1, t2);
               const mr = matchResults[mk] || {};
@@ -336,53 +336,53 @@ export default function RoomPage({ params }) {
               const kickoff = SCHEDULE[mk];
               const locked = !!result || isLocked(kickoff);
               return (
-                <div key={mk} style={{ padding:18, borderBottom:idx<arr.length-1?"1px solid #1e293b30":"none", background:result?"#041a0a":"transparent" }}>
+                <div key={mk} style={{ padding: 18, borderBottom: idx < arr.length - 1 ? "1px solid #1e293b30" : "none", background: result ? "#041a0a" : "transparent" }}>
                   {/* Date + Time */}
-                  <div style={{ display:"flex", justifyContent:"center", alignItems:"center", gap:8, marginBottom:10 }}>
-                    <span style={{ fontSize:14, color: locked?"#ef4444":"#c9a84c", fontWeight:700 }}>
+                  <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                    <span style={{ fontSize: 14, color: locked ? "#ef4444" : "#c9a84c", fontWeight: 700 }}>
                       {locked && !result ? "🔒 " : "🕐 "}{formatTR(kickoff)}
                     </span>
-                    {locked && !result && <span style={{ fontSize:12, color:"#ef4444", background:"#ef444420", padding:"2px 8px", borderRadius:6 }}>KİLİTLİ</span>}
+                    {locked && !result && <span style={{ fontSize: 12, color: "#ef4444", background: "#ef444420", padding: "2px 8px", borderRadius: 6 }}>KİLİTLİ</span>}
                   </div>
                   {/* VS */}
-                  <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:14, marginBottom:16 }}>
-                    <div style={{ flex:1, textAlign:"center" }}>
-                      <span style={{ fontSize:32, display:"block", marginBottom:4 }}>{FLAGS[t1]}</span>
-                      <span style={{ fontSize:14, fontWeight:700 }}>{shortName(t1)}</span>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 14, marginBottom: 16 }}>
+                    <div style={{ flex: 1, textAlign: "center" }}>
+                      <span style={{ fontSize: 32, display: "block", marginBottom: 4 }}>{FLAGS[t1]}</span>
+                      <span style={{ fontSize: 14, fontWeight: 700 }}>{shortName(t1)}</span>
                     </div>
-                    <span style={{ fontSize:14, fontWeight:900, color:"#475569", background:"#1e293b", borderRadius:20, padding:"4px 12px", letterSpacing:2 }}>VS</span>
-                    <div style={{ flex:1, textAlign:"center" }}>
-                      <span style={{ fontSize:32, display:"block", marginBottom:4 }}>{FLAGS[t2]}</span>
-                      <span style={{ fontSize:14, fontWeight:700 }}>{shortName(t2)}</span>
+                    <span style={{ fontSize: 14, fontWeight: 900, color: "#475569", background: "#1e293b", borderRadius: 20, padding: "4px 12px", letterSpacing: 2 }}>VS</span>
+                    <div style={{ flex: 1, textAlign: "center" }}>
+                      <span style={{ fontSize: 32, display: "block", marginBottom: 4 }}>{FLAGS[t2]}</span>
+                      <span style={{ fontSize: 14, fontWeight: 700 }}>{shortName(t2)}</span>
                     </div>
                   </div>
 
                   {/* Admin Sonuç + Alt/Üst */}
                   {isAdmin && (
-                    <div style={{ marginBottom:14, padding:"10px 12px", borderRadius:10, background:"#0a1628", border:"1px solid #1e293b" }}>
-                      <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8 }}>
-                        <span style={{ fontSize:14, fontWeight:800, color:"#475569" }}>SONUÇ</span>
-                        <div style={{ display:"flex", gap:6, flex:1, justifyContent:"center" }}>
-                          {["1","X","2"].map(v => (
+                    <div style={{ marginBottom: 14, padding: "10px 12px", borderRadius: 10, background: "#0a1628", border: "1px solid #1e293b" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                        <span style={{ fontSize: 14, fontWeight: 800, color: "#475569" }}>SONUÇ</span>
+                        <div style={{ display: "flex", gap: 6, flex: 1, justifyContent: "center" }}>
+                          {["1", "X", "2"].map(v => (
                             <button key={v} onClick={() => saveResult(mk, v)} style={{
-                              padding:"6px 14px", borderRadius:8, cursor:"pointer",
-                              border:result===v?"2px solid #16a34a":"1px solid #334155",
-                              background:result===v?"#16a34a":"transparent",
-                              color:result===v?"#fff":"#64748b", fontSize:14, fontWeight:result===v?700:500,
-                            }}>{v==="1"?shortName(t1):v==="2"?shortName(t2):"X"}</button>
+                              padding: "6px 14px", borderRadius: 8, cursor: "pointer",
+                              border: result === v ? "2px solid #16a34a" : "1px solid #334155",
+                              background: result === v ? "#16a34a" : "transparent",
+                              color: result === v ? "#fff" : "#64748b", fontSize: 14, fontWeight: result === v ? 700 : 500,
+                            }}>{v === "1" ? shortName(t1) : v === "2" ? shortName(t2) : "X"}</button>
                           ))}
                         </div>
                       </div>
-                      <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                        <span style={{ fontSize:14, fontWeight:800, color:"#475569" }}>A/Ü</span>
-                        <div style={{ display:"flex", gap:6, flex:1, justifyContent:"center" }}>
-                          {["alt","ust"].map(v => (
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ fontSize: 14, fontWeight: 800, color: "#475569" }}>A/Ü</span>
+                        <div style={{ display: "flex", gap: 6, flex: 1, justifyContent: "center" }}>
+                          {["alt", "ust"].map(v => (
                             <button key={v} onClick={() => saveOUResult(mk, v)} style={{
-                              padding:"6px 14px", borderRadius:8, cursor:"pointer",
-                              border:ouResult===v?"2px solid #16a34a":"1px solid #334155",
-                              background:ouResult===v?"#16a34a":"transparent",
-                              color:ouResult===v?"#fff":"#64748b", fontSize:14, fontWeight:ouResult===v?700:500,
-                            }}>{v==="alt"?"⬇ Alt":"⬆ Üst"}</button>
+                              padding: "6px 14px", borderRadius: 8, cursor: "pointer",
+                              border: ouResult === v ? "2px solid #16a34a" : "1px solid #334155",
+                              background: ouResult === v ? "#16a34a" : "transparent",
+                              color: ouResult === v ? "#fff" : "#64748b", fontSize: 14, fontWeight: ouResult === v ? 700 : 500,
+                            }}>{v === "alt" ? "⬇ Alt" : "⬆ Üst"}</button>
                           ))}
                         </div>
                       </div>
@@ -391,9 +391,9 @@ export default function RoomPage({ params }) {
 
                   {/* Non-admin result display */}
                   {!isAdmin && result && (
-                    <div style={{ textAlign:"center", marginBottom:12, padding:"6px", borderRadius:8, background:"#16a34a20", border:"1px solid #16a34a40" }}>
-                      <span style={{ fontSize:14, fontWeight:700, color:"#4ade80" }}>
-                        Sonuç: {result==="1"?t1:result==="2"?t2:"Berabere"}{ouResult ? ` • ${ouResult==="alt"?"⬇ Alt":"⬆ Üst"}` : ""}
+                    <div style={{ textAlign: "center", marginBottom: 12, padding: "6px", borderRadius: 8, background: "#16a34a20", border: "1px solid #16a34a40" }}>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: "#4ade80" }}>
+                        Sonuç: {result === "1" ? t1 : result === "2" ? t2 : "Berabere"}{ouResult ? ` • ${ouResult === "alt" ? "⬇ Alt" : "⬆ Üst"}` : ""}
                       </span>
                     </div>
                   )}
@@ -410,43 +410,43 @@ export default function RoomPage({ params }) {
                     const isMe = member.player_id === playerId;
                     return (
                       <div key={member.player_id} style={{
-                        padding:"10px 12px", borderRadius:10, marginBottom:6,
-                        background:ok?"#041a0a":no?"#1a0505":"#0f172a",
-                        border:`1px solid ${ok?"#16a34a40":no?"#ef444440":c.bg+"30"}`,
+                        padding: "10px 12px", borderRadius: 10, marginBottom: 6,
+                        background: ok ? "#041a0a" : no ? "#1a0505" : "#0f172a",
+                        border: `1px solid ${ok ? "#16a34a40" : no ? "#ef444440" : c.bg + "30"}`,
                       }}>
-                        <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:6 }}>
-                          <div style={{ width:8, height:8, borderRadius:4, background:c.bg, flexShrink:0 }}/>
-                          <span style={{ fontSize:14, fontWeight:800, color:c.ring, minWidth:48 }}>{member.name}</span>
-                          <div style={{ display:"flex", gap:6, flex:1, justifyContent:"center" }}>
-                            {["1","X","2"].map(v => (
+                        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+                          <div style={{ width: 8, height: 8, borderRadius: 4, background: c.bg, flexShrink: 0 }} />
+                          <span style={{ fontSize: 14, fontWeight: 800, color: c.ring, minWidth: 48 }}>{member.name}</span>
+                          <div style={{ display: "flex", gap: 6, flex: 1, justifyContent: "center" }}>
+                            {["1", "X", "2"].map(v => (
                               <button key={v} disabled={!isMe || locked} onClick={() => savePrediction(mk, v)} style={{
-                                padding:"6px 14px", borderRadius:8, border:"none",
-                                cursor:isMe && !locked?"pointer":"default",
-                                opacity:!isMe && !pred ? 0.4 : 1,
-                                background:pred===v?"#c9a84c":"#1e293b",
-                                color:pred===v?"#000":"#64748b", fontWeight:pred===v?800:500, fontSize:14,
+                                padding: "6px 14px", borderRadius: 8, border: "none",
+                                cursor: isMe && !locked ? "pointer" : "default",
+                                opacity: !isMe && !pred ? 0.4 : 1,
+                                background: pred === v ? "#c9a84c" : "#1e293b",
+                                color: pred === v ? "#000" : "#64748b", fontWeight: pred === v ? 800 : 500, fontSize: 14,
                               }}>{v}</button>
                             ))}
                           </div>
-                          {ok && <span style={{ fontSize:16 }}>✅</span>}
-                          {no && <span style={{ fontSize:16 }}>❌</span>}
+                          {ok && <span style={{ fontSize: 16 }}>✅</span>}
+                          {no && <span style={{ fontSize: 16 }}>❌</span>}
                         </div>
                         {/* Alt/Üst row */}
-                        <div style={{ display:"flex", alignItems:"center", gap:10, paddingLeft:18 }}>
-                          <span style={{ fontSize:12, color:"#475569", fontWeight:600, minWidth:48 }}>Alt/Üst</span>
-                          <div style={{ display:"flex", gap:6, flex:1, justifyContent:"center" }}>
-                            {["alt","ust"].map(v => (
+                        <div style={{ display: "flex", alignItems: "center", gap: 10, paddingLeft: 18 }}>
+                          <span style={{ fontSize: 12, color: "#475569", fontWeight: 600, minWidth: 48 }}>Alt/Üst</span>
+                          <div style={{ display: "flex", gap: 6, flex: 1, justifyContent: "center" }}>
+                            {["alt", "ust"].map(v => (
                               <button key={v} disabled={!isMe || locked} onClick={() => saveOU(mk, v)} style={{
-                                padding:"4px 12px", borderRadius:6, border:"none",
-                                cursor:isMe && !locked?"pointer":"default",
-                                opacity:!isMe && !ouPred ? 0.4 : 1,
-                                background:ouPred===v?(v==="alt"?"#6366f1":"#ec4899"):"#1e293b",
-                                color:ouPred===v?"#fff":"#64748b", fontWeight:ouPred===v?700:500, fontSize:13,
-                              }}>{v==="alt"?"⬇ Alt":"⬆ Üst"}</button>
+                                padding: "4px 12px", borderRadius: 6, border: "none",
+                                cursor: isMe && !locked ? "pointer" : "default",
+                                opacity: !isMe && !ouPred ? 0.4 : 1,
+                                background: ouPred === v ? (v === "alt" ? "#6366f1" : "#ec4899") : "#1e293b",
+                                color: ouPred === v ? "#fff" : "#64748b", fontWeight: ouPred === v ? 700 : 500, fontSize: 13,
+                              }}>{v === "alt" ? "⬇ Alt" : "⬆ Üst"}</button>
                             ))}
                           </div>
-                          {ouOk && <span style={{ fontSize:14 }}>✅</span>}
-                          {ouNo && <span style={{ fontSize:14 }}>❌</span>}
+                          {ouOk && <span style={{ fontSize: 14 }}>✅</span>}
+                          {ouNo && <span style={{ fontSize: 14 }}>❌</span>}
                         </div>
                       </div>
                     );
@@ -461,39 +461,39 @@ export default function RoomPage({ params }) {
       {/* ═══ QUALIFY ═══ */}
       {view === "qualify" && (
         <div className="px-4">
-          <div style={{ padding:"14px 18px", borderRadius:"14px 14px 0 0", background:"linear-gradient(135deg,#2a1f00,#0f172a)", borderBottom:"2px solid #c9a84c30" }}>
-            <span style={{ fontSize:16, fontWeight:900, color:"#c9a84c" }}>GRUP {activeGroup} — SIRALAMASI</span>
+          <div style={{ padding: "14px 18px", borderRadius: "14px 14px 0 0", background: "linear-gradient(135deg,#2a1f00,#0f172a)", borderBottom: "2px solid #c9a84c30" }}>
+            <span style={{ fontSize: 16, fontWeight: 900, color: "#c9a84c" }}>GRUP {activeGroup} — SIRALAMASI</span>
           </div>
-          <div style={{ background:"#111827", border:"1px solid #1e293b", borderTop:"none", borderRadius:"0 0 14px 14px", padding:18 }}>
+          <div style={{ background: "#111827", border: "1px solid #1e293b", borderTop: "none", borderRadius: "0 0 14px 14px", padding: 18 }}>
             {/* Takımlar */}
-            <div style={{ display:"flex", justifyContent:"center", gap:18, marginBottom:22 }}>
+            <div style={{ display: "flex", justifyContent: "center", gap: 18, marginBottom: 22 }}>
               {GROUPS[activeGroup].map(t => (
-                <div key={t} style={{ textAlign:"center" }}>
-                  <span style={{ fontSize:28 }}>{FLAGS[t]}</span>
-                  <div style={{ fontSize:14, color:"#94a3b8", marginTop:4 }}>{shortName(t)}</div>
+                <div key={t} style={{ textAlign: "center" }}>
+                  <span style={{ fontSize: 28 }}>{FLAGS[t]}</span>
+                  <div style={{ fontSize: 14, color: "#94a3b8", marginTop: 4 }}>{shortName(t)}</div>
                 </div>
               ))}
             </div>
 
             {/* Admin sonuç girişi */}
             {isAdmin && (
-              <div style={{ marginBottom:22, padding:16, borderRadius:12, background:"#0a1628", border:"1px solid #1e293b" }}>
-                <div style={{ fontSize:14, fontWeight:800, color:"#16a34a", marginBottom:12 }}>🏆 GERÇEK SONUÇ</div>
-                {["first","second"].map(pos => {
+              <div style={{ marginBottom: 22, padding: 16, borderRadius: 12, background: "#0a1628", border: "1px solid #1e293b" }}>
+                <div style={{ fontSize: 14, fontWeight: 800, color: "#16a34a", marginBottom: 12 }}>🏆 GERÇEK SONUÇ</div>
+                {["first", "second"].map(pos => {
                   const qr = qualifyResults[activeGroup] || {};
                   const val = pos === "first" ? qr.first_team : qr.second_team;
                   return (
-                    <div key={pos} style={{ display:"flex", alignItems:"center", gap:10, marginBottom:10 }}>
-                      <span style={{ fontSize:15, fontWeight:900, color:pos==="first"?"#c9a84c":"#94a3b8", background:pos==="first"?"#c9a84c20":"#1e293b", borderRadius:8, padding:"4px 10px" }}>
-                        {pos==="first"?"1.":"2."}
+                    <div key={pos} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                      <span style={{ fontSize: 15, fontWeight: 900, color: pos === "first" ? "#c9a84c" : "#94a3b8", background: pos === "first" ? "#c9a84c20" : "#1e293b", borderRadius: 8, padding: "4px 10px" }}>
+                        {pos === "first" ? "1." : "2."}
                       </span>
-                      <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                         {GROUPS[activeGroup].map(t => (
                           <button key={t} onClick={() => saveQualifyResult(activeGroup, pos, t)} style={{
-                            padding:"6px 12px", borderRadius:8, cursor:"pointer",
-                            border:val===t?"2px solid #16a34a":"1px solid #334155",
-                            background:val===t?"#16a34a20":"transparent",
-                            color:val===t?"#4ade80":"#64748b", fontSize:14, fontWeight:val===t?700:400,
+                            padding: "6px 12px", borderRadius: 8, cursor: "pointer",
+                            border: val === t ? "2px solid #16a34a" : "1px solid #334155",
+                            background: val === t ? "#16a34a20" : "transparent",
+                            color: val === t ? "#4ade80" : "#64748b", fontSize: 14, fontWeight: val === t ? 700 : 400,
                           }}>{FLAGS[t]} {shortName(t)}</button>
                         ))}
                       </div>
@@ -511,26 +511,26 @@ export default function RoomPage({ params }) {
               const c = pc(member.player_id);
               const isMe = member.player_id === playerId;
               return (
-                <div key={member.player_id} style={{ marginBottom:12, padding:16, borderRadius:12, background:`${c.bg}08`, border:`1px solid ${c.bg}30` }}>
-                  <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:12 }}>
-                    <div style={{ width:10, height:10, borderRadius:5, background:c.bg }}/>
-                    <span style={{ fontSize:16, fontWeight:900, color:c.ring }}>{member.name}</span>
+                <div key={member.player_id} style={{ marginBottom: 12, padding: 16, borderRadius: 12, background: `${c.bg}08`, border: `1px solid ${c.bg}30` }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                    <div style={{ width: 10, height: 10, borderRadius: 5, background: c.bg }} />
+                    <span style={{ fontSize: 16, fontWeight: 900, color: c.ring }}>{member.name}</span>
                     {hasResult && (
-                      <span style={{ fontSize:14, marginLeft:"auto" }}>
-                        {qp.first_team && (qp.first_team===qr.first_team ? <span style={{color:"#4ade80"}}>1.✅</span> : <span style={{color:"#f87171"}}>1.❌</span>)}
+                      <span style={{ fontSize: 14, marginLeft: "auto" }}>
+                        {qp.first_team && (qp.first_team === qr.first_team ? <span style={{ color: "#4ade80" }}>1.✅</span> : <span style={{ color: "#f87171" }}>1.❌</span>)}
                         {" "}
-                        {qp.second_team && (qp.second_team===qr.second_team ? <span style={{color:"#4ade80"}}>2.✅</span> : <span style={{color:"#f87171"}}>2.❌</span>)}
+                        {qp.second_team && (qp.second_team === qr.second_team ? <span style={{ color: "#4ade80" }}>2.✅</span> : <span style={{ color: "#f87171" }}>2.❌</span>)}
                       </span>
                     )}
                   </div>
-                  {["first","second"].map(pos => {
+                  {["first", "second"].map(pos => {
                     const sel = pos === "first" ? qp.first_team : qp.second_team;
                     return (
-                      <div key={pos} style={{ display:"flex", alignItems:"center", gap:10, marginBottom:8 }}>
-                        <span style={{ fontSize:15, fontWeight:800, color:pos==="first"?"#c9a84c":"#64748b", minWidth:24 }}>
-                          {pos==="first"?"1.":"2."}
+                      <div key={pos} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                        <span style={{ fontSize: 15, fontWeight: 800, color: pos === "first" ? "#c9a84c" : "#64748b", minWidth: 24 }}>
+                          {pos === "first" ? "1." : "2."}
                         </span>
-                        <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                           {GROUPS[activeGroup].map(t => {
                             const a = sel === t;
                             return (
@@ -545,12 +545,12 @@ export default function RoomPage({ params }) {
                                 }
                                 saveQualifyPred(activeGroup, cur.first, cur.second);
                               }} style={{
-                                padding:"5px 10px", borderRadius:8,
-                                cursor:isMe&&!hasResult?"pointer":"default",
-                                opacity:!isMe && !sel ? 0.4 : 1,
-                                border:a?`2px solid ${c.bg}`:"1px solid #334155",
-                                background:a?`${c.bg}20`:"transparent",
-                                color:a?c.ring:"#64748b", fontSize:14, fontWeight:a?700:400,
+                                padding: "5px 10px", borderRadius: 8,
+                                cursor: isMe && !hasResult ? "pointer" : "default",
+                                opacity: !isMe && !sel ? 0.4 : 1,
+                                border: a ? `2px solid ${c.bg}` : "1px solid #334155",
+                                background: a ? `${c.bg}20` : "transparent",
+                                color: a ? c.ring : "#64748b", fontSize: 14, fontWeight: a ? 700 : 400,
                               }}>{FLAGS[t]} {shortName(t)}</button>
                             );
                           })}
@@ -569,51 +569,51 @@ export default function RoomPage({ params }) {
       {view === "scoreboard" && (
         <div className="px-4">
           {sorted.map((m, i) => {
-            const v = scores[m.player_id] || { mc:0, mw:0, mt:0, qc:0, qt:0, pts:0 };
+            const v = scores[m.player_id] || { mc: 0, mw: 0, mt: 0, qc: 0, qt: 0, pts: 0 };
             const c = pc(m.player_id);
-            const medal = i===0?"🥇":i===1?"🥈":i===2?"🥉":`${i+1}.`;
+            const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i + 1}.`;
             const pct = v.mt > 0 ? Math.round(v.mc / v.mt * 100) : 0;
             return (
-              <div key={m.player_id} style={{ marginBottom:10, borderRadius:14, overflow:"hidden", border:`1.5px solid ${i===0?"#c9a84c50":"#1e293b"}`, background:i===0?"linear-gradient(135deg,#1a1500,#111827)":"#111827" }}>
-                <div style={{ display:"flex", alignItems:"center", padding:18, gap:16 }}>
-                  <div style={{ fontSize:36 }}>{medal}</div>
-                  <div style={{ flex:1 }}>
-                    <div style={{ fontSize:18, fontWeight:900, color:c.ring }}>{m.name}</div>
-                    <div style={{ fontSize:14, color:"#94a3b8", marginTop:4 }}>
+              <div key={m.player_id} style={{ marginBottom: 10, borderRadius: 14, overflow: "hidden", border: `1.5px solid ${i === 0 ? "#c9a84c50" : "#1e293b"}`, background: i === 0 ? "linear-gradient(135deg,#1a1500,#111827)" : "#111827" }}>
+                <div style={{ display: "flex", alignItems: "center", padding: 18, gap: 16 }}>
+                  <div style={{ fontSize: 36 }}>{medal}</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 18, fontWeight: 900, color: c.ring }}>{m.name}</div>
+                    <div style={{ fontSize: 14, color: "#94a3b8", marginTop: 4 }}>
                       Maç: ✅ {v.mc} doğru • ❌ {v.mw} yanlış
-                      {v.mt > 0 && <span style={{ color:pct>=50?"#4ade80":"#f87171" }}> • %{pct}</span>}
+                      {v.mt > 0 && <span style={{ color: pct >= 50 ? "#4ade80" : "#f87171" }}> • %{pct}</span>}
                     </div>
-                    <div style={{ fontSize:14, color:"#94a3b8", marginTop:2 }}>Alt/Üst: 📊 {v.oc}/{v.ot} doğru • Grup: 🏆 {v.qc}/{v.qt} doğru</div>
+                    <div style={{ fontSize: 14, color: "#94a3b8", marginTop: 2 }}>Alt/Üst: 📊 {v.oc}/{v.ot} doğru • Grup: 🏆 {v.qc}/{v.qt} doğru</div>
                   </div>
-                  <div style={{ textAlign:"right" }}>
-                    <div style={{ fontSize:40, fontWeight:900, color:"#fff", lineHeight:1 }}>{v.pts}</div>
-                    <div style={{ fontSize:14, color:"#c9a84c", fontWeight:700 }}>{v.mc}×3+{v.oc}×1+{v.qc}×5</div>
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ fontSize: 40, fontWeight: 900, color: "#fff", lineHeight: 1 }}>{v.pts}</div>
+                    <div style={{ fontSize: 14, color: "#c9a84c", fontWeight: 700 }}>{v.mc}×3+{v.oc}×1+{v.qc}×5</div>
                   </div>
                 </div>
-                <div style={{ height:4, background:"#1e293b" }}>
-                  <div style={{ height:4, background:`linear-gradient(90deg,${c.bg},${c.ring})`, width:`${Math.min(v.pts/150*100,100)}%`, borderRadius:2 }}/>
+                <div style={{ height: 4, background: "#1e293b" }}>
+                  <div style={{ height: 4, background: `linear-gradient(90deg,${c.bg},${c.ring})`, width: `${Math.min(v.pts / 150 * 100, 100)}%`, borderRadius: 2 }} />
                 </div>
               </div>
             );
           })}
 
           {/* Grup bazlı tablo */}
-          <div style={{ marginTop:18, borderRadius:14, overflow:"hidden", border:"1px solid #1e293b", background:"#111827" }}>
-            <div style={{ padding:"14px 18px", background:"#0f172a", fontWeight:900, fontSize:15, color:"#c9a84c" }}>GRUP BAZLI DETAY</div>
-            <div style={{ overflowX:"auto" }}>
-              <table style={{ width:"100%", borderCollapse:"collapse" }}>
+          <div style={{ marginTop: 18, borderRadius: 14, overflow: "hidden", border: "1px solid #1e293b", background: "#111827" }}>
+            <div style={{ padding: "14px 18px", background: "#0f172a", fontWeight: 900, fontSize: 15, color: "#c9a84c" }}>GRUP BAZLI DETAY</div>
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
-                  <tr style={{ background:"#0f172a" }}>
-                    <th style={{ padding:"10px 12px", textAlign:"left", color:"#64748b", fontSize:14 }}>Grup</th>
+                  <tr style={{ background: "#0f172a" }}>
+                    <th style={{ padding: "10px 12px", textAlign: "left", color: "#64748b", fontSize: 14 }}>Grup</th>
                     {members.map(m => (
-                      <th key={m.player_id} style={{ padding:"10px 8px", textAlign:"center", color:pc(m.player_id).ring, fontWeight:700, fontSize:14, borderLeft:"1px solid #1e293b" }}>{m.name}</th>
+                      <th key={m.player_id} style={{ padding: "10px 8px", textAlign: "center", color: pc(m.player_id).ring, fontWeight: 700, fontSize: 14, borderLeft: "1px solid #1e293b" }}>{m.name}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {GROUP_KEYS.map(g => {
                     const gs = {};
-                    members.forEach(m => { gs[m.player_id] = { c:0, w:0 }; });
+                    members.forEach(m => { gs[m.player_id] = { c: 0, w: 0 }; });
                     getMatches(GROUPS[g]).forEach(([t1, t2]) => {
                       const mk2 = matchKey(g, t1, t2);
                       const res = matchResults[mk2]?.result;
@@ -623,14 +623,14 @@ export default function RoomPage({ params }) {
                       });
                     });
                     return (
-                      <tr key={g} style={{ borderBottom:"1px solid #1e293b20" }}>
-                        <td style={{ padding:"10px 12px", fontWeight:700, color:"#94a3b8", fontSize:14 }}>{GROUPS[g].map(t => FLAGS[t]).join("")} {g}</td>
+                      <tr key={g} style={{ borderBottom: "1px solid #1e293b20" }}>
+                        <td style={{ padding: "10px 12px", fontWeight: 700, color: "#94a3b8", fontSize: 14 }}>{GROUPS[g].map(t => FLAGS[t]).join("")} {g}</td>
                         {members.map(m => (
-                          <td key={m.player_id} style={{ padding:"10px 8px", textAlign:"center", borderLeft:"1px solid #1e293b", fontSize:14 }}>
-                            {gs[m.player_id].c > 0 && <span style={{ color:"#4ade80", fontWeight:700 }}>{gs[m.player_id].c}</span>}
-                            {gs[m.player_id].c > 0 && gs[m.player_id].w > 0 && <span style={{ color:"#334155" }}> / </span>}
-                            {gs[m.player_id].w > 0 && <span style={{ color:"#f87171", fontWeight:700 }}>{gs[m.player_id].w}</span>}
-                            {gs[m.player_id].c === 0 && gs[m.player_id].w === 0 && <span style={{ color:"#334155" }}>—</span>}
+                          <td key={m.player_id} style={{ padding: "10px 8px", textAlign: "center", borderLeft: "1px solid #1e293b", fontSize: 14 }}>
+                            {gs[m.player_id].c > 0 && <span style={{ color: "#4ade80", fontWeight: 700 }}>{gs[m.player_id].c}</span>}
+                            {gs[m.player_id].c > 0 && gs[m.player_id].w > 0 && <span style={{ color: "#334155" }}> / </span>}
+                            {gs[m.player_id].w > 0 && <span style={{ color: "#f87171", fontWeight: 700 }}>{gs[m.player_id].w}</span>}
+                            {gs[m.player_id].c === 0 && gs[m.player_id].w === 0 && <span style={{ color: "#334155" }}>—</span>}
                           </td>
                         ))}
                       </tr>
@@ -641,9 +641,9 @@ export default function RoomPage({ params }) {
             </div>
           </div>
 
-          <div style={{ marginTop:24, textAlign:"center" }}>
-            <div style={{ fontSize:14, color:"#475569", lineHeight:1.7 }}>
-              🎯 Maç = <strong style={{ color:"#c9a84c" }}>3 puan</strong> &nbsp; 📊 Alt/Üst = <strong style={{ color:"#c9a84c" }}>1 puan</strong> &nbsp; 🏆 Sıra = <strong style={{ color:"#c9a84c" }}>5 puan</strong>
+          <div style={{ marginTop: 24, textAlign: "center" }}>
+            <div style={{ fontSize: 14, color: "#475569", lineHeight: 1.7 }}>
+              🎯 Maç = <strong style={{ color: "#c9a84c" }}>3 puan</strong> &nbsp; 📊 Alt/Üst = <strong style={{ color: "#c9a84c" }}>1 puan</strong> &nbsp; 🏆 Sıra = <strong style={{ color: "#c9a84c" }}>5 puan</strong>
             </div>
           </div>
         </div>
