@@ -1,8 +1,8 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, use } from "react";
 import { useRouter } from "next/navigation";
 import { supabase, getPlayerId, getPlayerName, setPlayerName } from "@/lib/supabase";
-import { GROUPS, FLAGS, shortName, getMatches, matchKey, GROUP_KEYS, calculateScores } from "@/lib/matches";
+import { GROUPS, FLAGS, shortName, getMatches, matchKey, GROUP_KEYS, SCHEDULE, formatTR, isLocked, getSortedMatches, calculateScores } from "@/lib/matches";
 
 function JoinPrompt({ room, code, playerId }) {
   const [name, setName] = useState("");
@@ -45,7 +45,7 @@ const COLORS = [
 ];
 
 export default function RoomPage({ params }) {
-  const { code } = params;
+  const { code } = use(params);
   const router = useRouter();
   const [room, setRoom] = useState(null);
   const [members, setMembers] = useState([]);
@@ -78,7 +78,10 @@ export default function RoomPage({ params }) {
     ]);
 
     const pMap = {};
-    (predRes.data || []).forEach(r => { pMap[`${r.player_id}:${r.match_key}`] = r.prediction; });
+    (predRes.data || []).forEach(r => {
+      pMap[`${r.player_id}:${r.match_key}`] = r.prediction;
+      if (r.ou) pMap[`ou:${r.player_id}:${r.match_key}`] = r.ou;
+    });
     setPredictions(pMap);
 
     const qMap = {};
@@ -86,7 +89,7 @@ export default function RoomPage({ params }) {
     setQualifyPreds(qMap);
 
     const mMap = {};
-    (mrRes.data || []).forEach(r => { mMap[r.match_key] = r.result; });
+    (mrRes.data || []).forEach(r => { mMap[r.match_key] = { result: r.result, ou: r.ou }; });
     setMatchResults(mMap);
 
     const qrMap = {};
@@ -109,13 +112,17 @@ export default function RoomPage({ params }) {
       // Realtime
       const channel = supabase.channel(`room-${rm.id}`)
         .on("postgres_changes", { event: "*", schema: "public", table: "predictions", filter: `room_id=eq.${rm.id}` }, (p) => {
-          setPredictions(prev => ({ ...prev, [`${p.new.player_id}:${p.new.match_key}`]: p.new.prediction }));
+          setPredictions(prev => {
+            const next = { ...prev, [`${p.new.player_id}:${p.new.match_key}`]: p.new.prediction };
+            if (p.new.ou) next[`ou:${p.new.player_id}:${p.new.match_key}`] = p.new.ou;
+            return next;
+          });
         })
         .on("postgres_changes", { event: "*", schema: "public", table: "qualify_predictions", filter: `room_id=eq.${rm.id}` }, (p) => {
           setQualifyPreds(prev => ({ ...prev, [`${p.new.player_id}:${p.new.group_letter}`]: p.new }));
         })
         .on("postgres_changes", { event: "*", schema: "public", table: "match_results" }, (p) => {
-          setMatchResults(prev => ({ ...prev, [p.new.match_key]: p.new.result }));
+          setMatchResults(prev => ({ ...prev, [p.new.match_key]: { result: p.new.result, ou: p.new.ou } }));
         })
         .on("postgres_changes", { event: "*", schema: "public", table: "qualify_results" }, (p) => {
           setQualifyResults(prev => ({ ...prev, [p.new.group_letter]: p.new }));
@@ -133,10 +140,25 @@ export default function RoomPage({ params }) {
   // ── Aksiyonlar ──
   async function savePrediction(mk, value) {
     if (!room) return;
-    // Sonuç girildiyse tahmin değiştirilemez
-    if (matchResults[mk]) return;
+    const mr = matchResults[mk];
+    if (mr?.result) return; // Sonuç girildiyse tahmin değiştirilemez
+    if (isLocked(SCHEDULE[mk])) return; // Maç saati geçtiyse kilitli
     await supabase.from("predictions").upsert(
       { room_id: room.id, player_id: playerId, match_key: mk, prediction: value, updated_at: new Date().toISOString() },
+      { onConflict: "room_id,player_id,match_key" }
+    );
+  }
+
+  async function saveOU(mk, value) {
+    if (!room) return;
+    const mr = matchResults[mk];
+    if (mr?.result) return;
+    if (isLocked(SCHEDULE[mk])) return;
+    // ou'yu mevcut prediction satırına ekle
+    const { data: existing } = await supabase.from("predictions")
+      .select("prediction").eq("room_id", room.id).eq("player_id", playerId).eq("match_key", mk).single();
+    await supabase.from("predictions").upsert(
+      { room_id: room.id, player_id: playerId, match_key: mk, prediction: existing?.prediction || "", ou: value, updated_at: new Date().toISOString() },
       { onConflict: "room_id,player_id,match_key" }
     );
   }
@@ -144,15 +166,25 @@ export default function RoomPage({ params }) {
   async function saveResult(mk, value) {
     if (!isAdmin) return;
     const existing = matchResults[mk];
-    if (existing === value) {
+    if (existing?.result === value) {
       await supabase.from("match_results").delete().eq("match_key", mk);
       setMatchResults(prev => { const n = { ...prev }; delete n[mk]; return n; });
     } else {
       await supabase.from("match_results").upsert(
-        { match_key: mk, result: value, updated_at: new Date().toISOString() },
+        { match_key: mk, result: value, ou: existing?.ou || null, updated_at: new Date().toISOString() },
         { onConflict: "match_key" }
       );
     }
+  }
+
+  async function saveOUResult(mk, value) {
+    if (!isAdmin) return;
+    const existing = matchResults[mk];
+    const newOU = existing?.ou === value ? null : value;
+    await supabase.from("match_results").upsert(
+      { match_key: mk, result: existing?.result || "", ou: newOU, updated_at: new Date().toISOString() },
+      { onConflict: "match_key" }
+    );
   }
 
   async function saveQualifyPred(group, first, second) {
@@ -248,10 +280,10 @@ export default function RoomPage({ params }) {
               <div style={{ fontSize:26, flexShrink:0 }}>{medal}</div>
               <div style={{ flex:1, minWidth:0 }}>
                 <div style={{ fontSize:16, fontWeight:900, color:c.ring }}>
-                {m.name} {m.player_id === room.admin_id && <span style={{ fontSize:12, color:"#c9a84c", background:"#c9a84c20", padding:"2px 8px", borderRadius:6, marginLeft:4 }}>👑 Admin</span>} {isMe && <span style={{ fontSize:14, color:"#475569" }}>(sen)</span>}
+                  {m.name} {isMe && <span style={{ fontSize:14, color:"#475569" }}>(sen)</span>}
                 </div>
                 <div style={{ fontSize:14, color:"#94a3b8", marginTop:2 }}>
-                  ✅ {v.mc} &nbsp; ❌ {v.mw} &nbsp; 🏆 {v.qc}
+                  ✅ {v.mc} &nbsp; ❌ {v.mw} &nbsp; 📊 {v.oc} &nbsp; 🏆 {v.qc}
                 </div>
               </div>
               <div style={{ textAlign:"right", flexShrink:0 }}>
@@ -296,12 +328,22 @@ export default function RoomPage({ params }) {
             <span style={{ fontSize:18 }}>{GROUPS[activeGroup].map(t => FLAGS[t]).join(" ")}</span>
           </div>
           <div style={{ background:"#111827", border:"1px solid #1e293b", borderTop:"none", borderRadius:"0 0 14px 14px", overflow:"hidden" }}>
-            {getMatches(GROUPS[activeGroup]).map(([t1, t2], idx, arr) => {
+            {getSortedMatches(activeGroup, GROUPS[activeGroup]).map(([t1, t2], idx, arr) => {
               const mk = matchKey(activeGroup, t1, t2);
-              const result = matchResults[mk];
-              const locked = !!result;
+              const mr = matchResults[mk] || {};
+              const result = mr.result;
+              const ouResult = mr.ou;
+              const kickoff = SCHEDULE[mk];
+              const locked = !!result || isLocked(kickoff);
               return (
                 <div key={mk} style={{ padding:18, borderBottom:idx<arr.length-1?"1px solid #1e293b30":"none", background:result?"#041a0a":"transparent" }}>
+                  {/* Date + Time */}
+                  <div style={{ display:"flex", justifyContent:"center", alignItems:"center", gap:8, marginBottom:10 }}>
+                    <span style={{ fontSize:14, color: locked?"#ef4444":"#c9a84c", fontWeight:700 }}>
+                      {locked && !result ? "🔒 " : "🕐 "}{formatTR(kickoff)}
+                    </span>
+                    {locked && !result && <span style={{ fontSize:12, color:"#ef4444", background:"#ef444420", padding:"2px 8px", borderRadius:6 }}>KİLİTLİ</span>}
+                  </div>
                   {/* VS */}
                   <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:14, marginBottom:16 }}>
                     <div style={{ flex:1, textAlign:"center" }}>
@@ -315,61 +357,97 @@ export default function RoomPage({ params }) {
                     </div>
                   </div>
 
-                  {/* Sonuç (admin only) */}
+                  {/* Admin Sonuç + Alt/Üst */}
                   {isAdmin && (
-                    <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:14, padding:"10px 12px", borderRadius:10, background:"#0a1628", border:"1px solid #1e293b" }}>
-                      <span style={{ fontSize:14, fontWeight:800, color:"#475569", letterSpacing:1 }}>SONUÇ</span>
-                      <div style={{ display:"flex", gap:6, flex:1, justifyContent:"center" }}>
-                        {["1","X","2"].map(v => (
-                          <button key={v} onClick={() => saveResult(mk, v)} style={{
-                            padding:"6px 14px", borderRadius:8, cursor:"pointer",
-                            border:result===v?"2px solid #16a34a":"1px solid #334155",
-                            background:result===v?"#16a34a":"transparent",
-                            color:result===v?"#fff":"#64748b", fontSize:14, fontWeight:result===v?700:500,
-                          }}>{v==="1"?shortName(t1):v==="2"?shortName(t2):"X"}</button>
-                        ))}
+                    <div style={{ marginBottom:14, padding:"10px 12px", borderRadius:10, background:"#0a1628", border:"1px solid #1e293b" }}>
+                      <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8 }}>
+                        <span style={{ fontSize:14, fontWeight:800, color:"#475569" }}>SONUÇ</span>
+                        <div style={{ display:"flex", gap:6, flex:1, justifyContent:"center" }}>
+                          {["1","X","2"].map(v => (
+                            <button key={v} onClick={() => saveResult(mk, v)} style={{
+                              padding:"6px 14px", borderRadius:8, cursor:"pointer",
+                              border:result===v?"2px solid #16a34a":"1px solid #334155",
+                              background:result===v?"#16a34a":"transparent",
+                              color:result===v?"#fff":"#64748b", fontSize:14, fontWeight:result===v?700:500,
+                            }}>{v==="1"?shortName(t1):v==="2"?shortName(t2):"X"}</button>
+                          ))}
+                        </div>
+                      </div>
+                      <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                        <span style={{ fontSize:14, fontWeight:800, color:"#475569" }}>A/Ü</span>
+                        <div style={{ display:"flex", gap:6, flex:1, justifyContent:"center" }}>
+                          {["alt","ust"].map(v => (
+                            <button key={v} onClick={() => saveOUResult(mk, v)} style={{
+                              padding:"6px 14px", borderRadius:8, cursor:"pointer",
+                              border:ouResult===v?"2px solid #16a34a":"1px solid #334155",
+                              background:ouResult===v?"#16a34a":"transparent",
+                              color:ouResult===v?"#fff":"#64748b", fontSize:14, fontWeight:ouResult===v?700:500,
+                            }}>{v==="alt"?"⬇ Alt":"⬆ Üst"}</button>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   )}
 
-                  {/* Sonuç gösterge (non-admin) */}
+                  {/* Non-admin result display */}
                   {!isAdmin && result && (
                     <div style={{ textAlign:"center", marginBottom:12, padding:"6px", borderRadius:8, background:"#16a34a20", border:"1px solid #16a34a40" }}>
                       <span style={{ fontSize:14, fontWeight:700, color:"#4ade80" }}>
-                        Sonuç: {result==="1"?t1:result==="2"?t2:"Berabere"}
+                        Sonuç: {result==="1"?t1:result==="2"?t2:"Berabere"}{ouResult ? ` • ${ouResult==="alt"?"⬇ Alt":"⬆ Üst"}` : ""}
                       </span>
                     </div>
                   )}
 
-                  {/* Oyuncu tahminleri */}
+                  {/* Player predictions */}
                   {members.map(member => {
                     const pred = predictions[`${member.player_id}:${mk}`];
+                    const ouPred = predictions[`ou:${member.player_id}:${mk}`];
                     const ok = result && pred === result;
                     const no = result && pred && pred !== result;
+                    const ouOk = ouResult && ouPred === ouResult;
+                    const ouNo = ouResult && ouPred && ouPred !== ouResult;
                     const c = pc(member.player_id);
                     const isMe = member.player_id === playerId;
                     return (
                       <div key={member.player_id} style={{
-                        display:"flex", alignItems:"center", gap:10, padding:"10px 12px", borderRadius:10, marginBottom:6,
+                        padding:"10px 12px", borderRadius:10, marginBottom:6,
                         background:ok?"#041a0a":no?"#1a0505":"#0f172a",
                         border:`1px solid ${ok?"#16a34a40":no?"#ef444440":c.bg+"30"}`,
                       }}>
-                        <div style={{ width:8, height:8, borderRadius:4, background:c.bg, flexShrink:0 }}/>
-                        <span style={{ fontSize:14, fontWeight:800, color:c.ring, minWidth:48 }}>{member.name}</span>
-                        <div style={{ display:"flex", gap:6, flex:1, justifyContent:"center" }}>
-                          {["1","X","2"].map(v => (
-                            <button key={v} disabled={!isMe || locked} onClick={() => savePrediction(mk, v)} style={{
-                              padding:"6px 16px", borderRadius:8, border:"none",
-                              cursor:isMe && !locked?"pointer":"default",
-                              opacity:!isMe && !pred ? 0.4 : 1,
-                              background:pred===v?"#c9a84c":"#1e293b",
-                              color:pred===v?"#000":"#64748b", fontWeight:pred===v?800:500, fontSize:14,
-                            }}>{v}</button>
-                          ))}
+                        <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:6 }}>
+                          <div style={{ width:8, height:8, borderRadius:4, background:c.bg, flexShrink:0 }}/>
+                          <span style={{ fontSize:14, fontWeight:800, color:c.ring, minWidth:48 }}>{member.name}</span>
+                          <div style={{ display:"flex", gap:6, flex:1, justifyContent:"center" }}>
+                            {["1","X","2"].map(v => (
+                              <button key={v} disabled={!isMe || locked} onClick={() => savePrediction(mk, v)} style={{
+                                padding:"6px 14px", borderRadius:8, border:"none",
+                                cursor:isMe && !locked?"pointer":"default",
+                                opacity:!isMe && !pred ? 0.4 : 1,
+                                background:pred===v?"#c9a84c":"#1e293b",
+                                color:pred===v?"#000":"#64748b", fontWeight:pred===v?800:500, fontSize:14,
+                              }}>{v}</button>
+                            ))}
+                          </div>
+                          {ok && <span style={{ fontSize:16 }}>✅</span>}
+                          {no && <span style={{ fontSize:16 }}>❌</span>}
                         </div>
-                        {ok && <span style={{ fontSize:18 }}>✅</span>}
-                        {no && <span style={{ fontSize:18 }}>❌</span>}
-                        {pred && !result && <span style={{ fontSize:14, color:"#475569" }}>{pred==="1"?shortName(t1):pred==="2"?shortName(t2):"X"}</span>}
+                        {/* Alt/Üst row */}
+                        <div style={{ display:"flex", alignItems:"center", gap:10, paddingLeft:18 }}>
+                          <span style={{ fontSize:12, color:"#475569", fontWeight:600, minWidth:48 }}>Alt/Üst</span>
+                          <div style={{ display:"flex", gap:6, flex:1, justifyContent:"center" }}>
+                            {["alt","ust"].map(v => (
+                              <button key={v} disabled={!isMe || locked} onClick={() => saveOU(mk, v)} style={{
+                                padding:"4px 12px", borderRadius:6, border:"none",
+                                cursor:isMe && !locked?"pointer":"default",
+                                opacity:!isMe && !ouPred ? 0.4 : 1,
+                                background:ouPred===v?(v==="alt"?"#6366f1":"#ec4899"):"#1e293b",
+                                color:ouPred===v?"#fff":"#64748b", fontWeight:ouPred===v?700:500, fontSize:13,
+                              }}>{v==="alt"?"⬇ Alt":"⬆ Üst"}</button>
+                            ))}
+                          </div>
+                          {ouOk && <span style={{ fontSize:14 }}>✅</span>}
+                          {ouNo && <span style={{ fontSize:14 }}>❌</span>}
+                        </div>
                       </div>
                     );
                   })}
@@ -505,11 +583,11 @@ export default function RoomPage({ params }) {
                       Maç: ✅ {v.mc} doğru • ❌ {v.mw} yanlış
                       {v.mt > 0 && <span style={{ color:pct>=50?"#4ade80":"#f87171" }}> • %{pct}</span>}
                     </div>
-                    <div style={{ fontSize:14, color:"#94a3b8", marginTop:2 }}>Grup: 🏆 {v.qc}/{v.qt} doğru</div>
+                    <div style={{ fontSize:14, color:"#94a3b8", marginTop:2 }}>Alt/Üst: 📊 {v.oc}/{v.ot} doğru • Grup: 🏆 {v.qc}/{v.qt} doğru</div>
                   </div>
                   <div style={{ textAlign:"right" }}>
                     <div style={{ fontSize:40, fontWeight:900, color:"#fff", lineHeight:1 }}>{v.pts}</div>
-                    <div style={{ fontSize:14, color:"#c9a84c", fontWeight:700 }}>{v.mc}×3 + {v.qc}×5</div>
+                    <div style={{ fontSize:14, color:"#c9a84c", fontWeight:700 }}>{v.mc}×3+{v.oc}×1+{v.qc}×5</div>
                   </div>
                 </div>
                 <div style={{ height:4, background:"#1e293b" }}>
@@ -538,7 +616,7 @@ export default function RoomPage({ params }) {
                     members.forEach(m => { gs[m.player_id] = { c:0, w:0 }; });
                     getMatches(GROUPS[g]).forEach(([t1, t2]) => {
                       const mk2 = matchKey(g, t1, t2);
-                      const res = matchResults[mk2];
+                      const res = matchResults[mk2]?.result;
                       if (res) members.forEach(m => {
                         const pred = predictions[`${m.player_id}:${mk2}`];
                         if (pred) { if (pred === res) gs[m.player_id].c++; else gs[m.player_id].w++; }
@@ -565,7 +643,7 @@ export default function RoomPage({ params }) {
 
           <div style={{ marginTop:24, textAlign:"center" }}>
             <div style={{ fontSize:14, color:"#475569", lineHeight:1.7 }}>
-              🎯 Doğru maç = <strong style={{ color:"#c9a84c" }}>3 puan</strong> &nbsp; 🏆 Doğru sıra = <strong style={{ color:"#c9a84c" }}>5 puan</strong>
+              🎯 Maç = <strong style={{ color:"#c9a84c" }}>3 puan</strong> &nbsp; 📊 Alt/Üst = <strong style={{ color:"#c9a84c" }}>1 puan</strong> &nbsp; 🏆 Sıra = <strong style={{ color:"#c9a84c" }}>5 puan</strong>
             </div>
           </div>
         </div>

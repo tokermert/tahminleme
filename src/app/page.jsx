@@ -97,6 +97,36 @@ export default function Home() {
             <button onClick={() => setMode("join")} className={`${btn} bg-pitch-700 text-slate-300 border border-pitch-600`}>
               🎟️ Odaya Katıl
             </button>
+
+            {/* Oyun Özellikleri */}
+            <div className="mt-8 pt-6 border-t border-pitch-700">
+              <h2 className="text-[16px] font-black text-gold-400 mb-4">⚽ Oyun Özellikleri</h2>
+              <div className="space-y-3">
+                {[
+                  ["🏟️", "Oda Sistemi", "Kendi tahmin odanı oluştur, arkadaşlarını 6 haneli kodla davet et. Sınırsız oda, sınırsız kişi."],
+                  ["🌍", "72 Grup Maçı", "12 grubun tüm maçları bayraklarıyla hazır. Gerçek FIFA 2026 programı, Türkiye saatiyle."],
+                  ["🎯", "1/X/2 Tahmin", "Her maç için ev sahibi / berabere / deplasman tahmini yap. Doğru tahmin 3 puan."],
+                  ["📊", "Alt / Üst 2.5", "Her maç için toplam gol alt mı üst mü tahmin et. Doğru tahmin 1 puan."],
+                  ["🏆", "Grup Sıralaması", "Her gruptan ilk 2'ye çıkacak takımları sıralı tahmin et. Doğru sıra 5 puan."],
+                  ["⏰", "Zaman Kilidi", "Maç saati geldiğinde tahminler otomatik kilitlenir. Hile yok."],
+                  ["⚡", "Canlı Güncelleme", "Biri tahmin girdiği an herkesin ekranında anında görünür."],
+                  ["👑", "Admin Paneli", "Oda kurucusu sonuçları girer, puanlar otomatik hesaplanır."],
+                  ["📈", "Detaylı İstatistik", "Grup bazlı doğru/yanlış, isabet yüzdesi, progress bar'lı sıralama."],
+                  ["📤", "Kolay Paylaşım", "Tek tıkla oda kodu + link WhatsApp'a veya panoya kopyalanır."],
+                ].map(([emoji, title, desc], i) => (
+                  <div key={i} className="flex gap-3 items-start p-3 rounded-xl bg-pitch-800 border border-pitch-700">
+                    <span className="text-xl flex-shrink-0 mt-0.5">{emoji}</span>
+                    <div>
+                      <div className="text-[14px] font-bold text-white">{title}</div>
+                      <div className="text-[13px] text-slate-400 mt-0.5 leading-relaxed">{desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4 text-center text-[13px] text-slate-500">
+                🎯 Maç = 3 puan &nbsp;•&nbsp; 📊 Alt/Üst = 1 puan &nbsp;•&nbsp; 🏆 Sıralama = 5 puan
+              </div>
+            </div>
           </div>
         )}
 
