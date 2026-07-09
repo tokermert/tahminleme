@@ -300,7 +300,15 @@ export default function RoomPage({ params }) {
     const match = [...KNOCKOUT_R32, ...KNOCKOUT_R16, ...KNOCKOUT_QF].find(m => m.id === matchId);
     if (match && isLocked(match.date)) return;
     const cur = koPreds[`${playerId}:${matchId}`] || {};
-    const updated = { room_id: room.id, player_id: playerId, match_id: matchId, winner: cur.winner || null, method: cur.method || null, updated_at: new Date().toISOString() };
+    const updated = {
+      room_id: room.id, player_id: playerId, match_id: matchId,
+      winner: cur.winner || null, method: cur.method || null,
+      ou: cur.ou || null, first_goal: cur.first_goal || null,
+      goal_time: cur.goal_time || null,
+      penalty_yn: cur.penalty_yn || null, red_card_yn: cur.red_card_yn || null,
+      var_yn: cur.var_yn || null,
+      updated_at: new Date().toISOString()
+    };
     updated[field] = value;
     await supabase.from("knockout_predictions").upsert(updated, { onConflict: "room_id,player_id,match_id" });
   }
@@ -308,7 +316,15 @@ export default function RoomPage({ params }) {
   async function saveKoResult(matchId, field, value) {
     if (!isAdmin) return;
     const cur = koResults[matchId] || {};
-    const updated = { match_id: matchId, winner: cur.winner || null, method: cur.method || null, ou: cur.ou || null, updated_at: new Date().toISOString() };
+    const updated = {
+      match_id: matchId,
+      winner: cur.winner || null, method: cur.method || null,
+      ou: cur.ou || null, first_goal: cur.first_goal || null,
+      goal_time: cur.goal_time || null,
+      penalty_yn: cur.penalty_yn || null, red_card_yn: cur.red_card_yn || null,
+      var_yn: cur.var_yn || null,
+      updated_at: new Date().toISOString()
+    };
     updated[field] = cur[field] === value ? null : value;
     await supabase.from("knockout_results").upsert(updated, { onConflict: "match_id" });
   }
@@ -924,7 +940,7 @@ export default function RoomPage({ params }) {
                         ].map(([label,field,opts,activeColor]) => (
                           <div key={field} style={{ display:"flex", alignItems:"center", gap:5, marginBottom:5, paddingLeft:16, flexWrap:"wrap" }}>
                             <span style={{ fontSize:13, color:"#475569", fontWeight:600, minWidth:44 }}>{label}</span>
-                            {(field==="method"||field==="ou"||field==="goal_time") ? opts.map(([v,lbl]) => (
+                            {(field==="method"||field==="ou"||field==="goal_time"||field==="penalty_yn"||field==="red_card_yn"||field==="var_yn") ? opts.map(([v,lbl]) => (
                               <button key={v} disabled={!isMe||locked} onClick={() => saveKoPred(match.id,field,v)} style={{
                                 padding:"4px 8px", borderRadius:6, border:"none", cursor:isMe&&!locked?"pointer":"default",
                                 opacity:!isMe&&!kp[field]?0.4:1,
