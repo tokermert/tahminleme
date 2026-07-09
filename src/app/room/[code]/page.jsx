@@ -373,6 +373,9 @@ export default function RoomPage({ params }) {
       if (kr.ou && kp.ou === kr.ou) scores[m.player_id].pts += 1;
       if (kr.first_goal && kp.first_goal === kr.first_goal) scores[m.player_id].pts += 10;
       if (kr.goal_time && kp.goal_time === kr.goal_time) scores[m.player_id].pts += 10;
+      if (kr.penalty_yn && kp.penalty_yn === kr.penalty_yn) scores[m.player_id].pts += 5;
+      if (kr.red_card_yn && kp.red_card_yn === kr.red_card_yn) scores[m.player_id].pts += 5;
+      if (kr.var_yn && kp.var_yn === kr.var_yn) scores[m.player_id].pts += 5;
     });
   });
   const sorted = [...members].sort((a, b) => (scores[b.player_id]?.pts || 0) - (scores[a.player_id]?.pts || 0));
@@ -818,7 +821,7 @@ export default function RoomPage({ params }) {
           <div style={{ borderRadius:14, overflow:"hidden", border:"1px solid #1e293b", background:"#111827" }}>
             <div style={{ padding:"14px 18px", background:"linear-gradient(135deg,#1b2d00,#0f172a)", borderBottom:"2px solid #c9a84c30" }}>
               <span style={{ fontSize:16, fontWeight:900, color:"#c9a84c" }}>🏆 ÇEYREK FİNAL</span>
-              <div style={{ fontSize:13, color:"#64748b", marginTop:4 }}>Kazanan 2p • 90dk 3p • Uzatma 4p • Penaltı 5p • A/Ü 1p • Gol Dakikası 10p</div>
+              <div style={{ fontSize:13, color:"#64748b", marginTop:4 }}>Kazanan 2p • Nasıl 3/4/5p • A/Ü 1p • Dakika 10p • İlk Gol / Penaltı / Kırmızı / VAR 5p</div>
             </div>
             {KNOCKOUT_QF.map((match, idx) => {
               const kr = koResults[match.id] || {};
@@ -851,6 +854,10 @@ export default function RoomPage({ params }) {
                         ["NASIL?","method_btn",METHODS],
                         ["A/Ü","ou_btn",[["alt","⬇ Alt"],["ust","⬆ Üst"]]],
                         ["DAKİKA","goal_time_btn",GOAL_TIME_SLOTS],
+                        ["İLK G","first_goal",[match.home,match.away]],
+                        ["PENALTI","penalty_yn_btn",[["evet","✅ Olur"],["hayir","❌ Olmaz"]]],
+                        ["KIRMIZI","red_card_yn_btn",[["evet","✅ Olur"],["hayir","❌ Olmaz"]]],
+                        ["VAR","var_yn_btn",[["evet","✅ Gider"],["hayir","❌ Gitmez"]]],
                       ].map(([label,type,opts]) => (
                         <div key={label} style={{ display:"flex", alignItems:"center", gap:6, marginBottom:6, flexWrap:"wrap" }}>
                           <span style={{ fontSize:14, fontWeight:800, color:"#475569", minWidth:50 }}>{label}</span>
@@ -860,6 +867,12 @@ export default function RoomPage({ params }) {
                             <button key={v} onClick={() => saveKoResult(match.id,"ou",v)} style={{ padding:"5px 12px", borderRadius:8, cursor:"pointer", border:kr.ou===v?"2px solid #16a34a":"1px solid #334155", background:kr.ou===v?"#16a34a":"transparent", color:kr.ou===v?"#fff":"#64748b", fontSize:13, fontWeight:kr.ou===v?700:400 }}>{lbl}</button>
                           )) : type==="goal_time_btn" ? opts.map(([v,lbl]) => (
                             <button key={v} onClick={() => saveKoResult(match.id,"goal_time",v)} style={{ padding:"5px 8px", borderRadius:8, cursor:"pointer", border:kr.goal_time===v?"2px solid #16a34a":"1px solid #334155", background:kr.goal_time===v?"#16a34a":"transparent", color:kr.goal_time===v?"#fff":"#64748b", fontSize:12, fontWeight:kr.goal_time===v?700:400 }}>{lbl}</button>
+                          )) : type==="penalty_yn_btn" ? opts.map(([v,lbl]) => (
+                            <button key={v} onClick={() => saveKoResult(match.id,"penalty_yn",v)} style={{ padding:"5px 10px", borderRadius:8, cursor:"pointer", border:kr.penalty_yn===v?"2px solid #16a34a":"1px solid #334155", background:kr.penalty_yn===v?"#16a34a":"transparent", color:kr.penalty_yn===v?"#fff":"#64748b", fontSize:13, fontWeight:kr.penalty_yn===v?700:400 }}>{lbl}</button>
+                          )) : type==="red_card_yn_btn" ? opts.map(([v,lbl]) => (
+                            <button key={v} onClick={() => saveKoResult(match.id,"red_card_yn",v)} style={{ padding:"5px 10px", borderRadius:8, cursor:"pointer", border:kr.red_card_yn===v?"2px solid #16a34a":"1px solid #334155", background:kr.red_card_yn===v?"#16a34a":"transparent", color:kr.red_card_yn===v?"#fff":"#64748b", fontSize:13, fontWeight:kr.red_card_yn===v?700:400 }}>{lbl}</button>
+                          )) : type==="var_yn_btn" ? opts.map(([v,lbl]) => (
+                            <button key={v} onClick={() => saveKoResult(match.id,"var_yn",v)} style={{ padding:"5px 10px", borderRadius:8, cursor:"pointer", border:kr.var_yn===v?"2px solid #16a34a":"1px solid #334155", background:kr.var_yn===v?"#16a34a":"transparent", color:kr.var_yn===v?"#fff":"#64748b", fontSize:13, fontWeight:kr.var_yn===v?700:400 }}>{lbl}</button>
                           )) : opts.map(t => (
                             <button key={t} onClick={() => saveKoResult(match.id,type,t)} style={{ padding:"5px 12px", borderRadius:8, cursor:"pointer", border:kr[type]===t?"2px solid #16a34a":"1px solid #334155", background:kr[type]===t?"#16a34a":"transparent", color:kr[type]===t?"#fff":"#64748b", fontSize:14, fontWeight:kr[type]===t?700:400 }}>{FLAGS[t]||""} {shortName(t)}</button>
                           ))}
@@ -893,6 +906,10 @@ export default function RoomPage({ params }) {
                             {kr.method&&kp.method?(kp.method===kr.method?"✅":"❌"):""}
                             {kr.ou&&kp.ou?(kp.ou===kr.ou?"✅":"❌"):""}
                             {kr.goal_time&&kp.goal_time?(kp.goal_time===kr.goal_time?"✅":"❌"):""}
+                            {kr.first_goal&&kp.first_goal?(kp.first_goal===kr.first_goal?"✅":"❌"):""}
+                            {kr.penalty_yn&&kp.penalty_yn?(kp.penalty_yn===kr.penalty_yn?"✅":"❌"):""}
+                            {kr.red_card_yn&&kp.red_card_yn?(kp.red_card_yn===kr.red_card_yn?"✅":"❌"):""}
+                            {kr.var_yn&&kp.var_yn?(kp.var_yn===kr.var_yn?"✅":"❌"):""}
                           </span>}
                         </div>
                         {[
@@ -900,6 +917,10 @@ export default function RoomPage({ params }) {
                           ["Nasıl?","method",[["90","90dk"],["extra","Uzatma"],["penalty","Penaltı"]],null],
                           ["A/Ü","ou",[["alt","⬇ Alt"],["ust","⬆ Üst"]],null],
                           ["Dakika","goal_time",GOAL_TIME_SLOTS,"#8b5cf6"],
+                          ["İlk G","first_goal",[match.home,match.away],"#f97316"],
+                          ["Penaltı","penalty_yn",[["evet","✅ Olur"],["hayir","❌ Olmaz"]],"#ef4444"],
+                          ["Kırmızı","red_card_yn",[["evet","✅ Olur"],["hayir","❌ Olmaz"]],"#ef4444"],
+                          ["VAR","var_yn",[["evet","✅ Gider"],["hayir","❌ Gitmez"]],"#3b82f6"],
                         ].map(([label,field,opts,activeColor]) => (
                           <div key={field} style={{ display:"flex", alignItems:"center", gap:5, marginBottom:5, paddingLeft:16, flexWrap:"wrap" }}>
                             <span style={{ fontSize:13, color:"#475569", fontWeight:600, minWidth:44 }}>{label}</span>
