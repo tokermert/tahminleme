@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { supabase, getPlayerId, getPlayerName, setPlayerName } from "@/lib/supabase";
-import { GROUPS, FLAGS, shortName, getMatches, matchKey, GROUP_KEYS, SCHEDULE, formatTR, isLocked, getSortedMatches, calculateScores, ALL_TEAMS, KNOCKOUT_R32, KNOCKOUT_R16, KNOCKOUT_QF, GOAL_TIME_SLOTS } from "@/lib/matches";
+import { GROUPS, FLAGS, shortName, getMatches, matchKey, GROUP_KEYS, SCHEDULE, formatTR, isLocked, getSortedMatches, calculateScores, ALL_TEAMS, KNOCKOUT_R32, KNOCKOUT_R16, KNOCKOUT_QF, KNOCKOUT_SF, GOAL_TIME_SLOTS } from "@/lib/matches";
 
 function JoinPrompt({ room, code, playerId }) {
   const [name, setName] = useState("");
@@ -297,7 +297,7 @@ export default function RoomPage({ params }) {
 
   async function saveKoPred(matchId, field, value) {
     if (!room) return;
-    const match = [...KNOCKOUT_R32, ...KNOCKOUT_R16, ...KNOCKOUT_QF].find(m => m.id === matchId);
+    const match = [...KNOCKOUT_R32, ...KNOCKOUT_R16, ...KNOCKOUT_QF, ...KNOCKOUT_SF].find(m => m.id === matchId);
     if (match && isLocked(match.date)) return;
     const cur = koPreds[`${playerId}:${matchId}`] || {};
     const updated = {
@@ -375,7 +375,7 @@ export default function RoomPage({ params }) {
     });
   }
   // Knockout puanları (R32 + R16 + QF)
-  [...KNOCKOUT_R32, ...KNOCKOUT_R16, ...KNOCKOUT_QF].forEach(match => {
+  [...KNOCKOUT_R32, ...KNOCKOUT_R16, ...KNOCKOUT_QF, ...KNOCKOUT_SF].forEach(match => {
     const kr = koResults[match.id];
     if (!kr) return;
     members.forEach(m => {
@@ -449,7 +449,7 @@ export default function RoomPage({ params }) {
 
       {/* ── NAV ── */}
       <div className="flex gap-1.5 px-4 mb-4">
-        {[["matches","🎯 Maçlar"],["qualify","🏆 Sıralama"],["knockout","⚔️ Knockout"],["qf","🏆 Ç.Final"],["cup","🏅 Kupa"],["scoreboard","📊 Detay"]].map(([v,label]) => (
+        {[["matches","🎯 Maçlar"],["qualify","🏆 Sıralama"],["knockout","⚔️ Knockout"],["qf","🏆 Ç.Final"],["sf","⭐ Y.Final"],["cup","🏅 Kupa"],["scoreboard","📊 Detay"]].map(([v,label]) => (
           <button key={v} onClick={() => setView(v)} style={{
             flex:1, padding:"12px 6px", border:"none", borderRadius:10, cursor:"pointer",
             background:view===v?"linear-gradient(135deg,#c9a84c,#a67c2e)":"#1e293b",
@@ -459,7 +459,7 @@ export default function RoomPage({ params }) {
       </div>
 
       {/* ── GRUP TABS ── */}
-      {view !== "scoreboard" && view !== "cup" && view !== "knockout" && view !== "qf" && (
+      {view !== "scoreboard" && view !== "cup" && view !== "knockout" && view !== "qf" && view !== "sf" && (
         <div className="flex flex-wrap gap-1.5 px-4 mb-5 justify-center">
           {GROUP_KEYS.map(g => (
             <button key={g} onClick={() => setActiveGroup(g)} style={{
@@ -907,6 +907,139 @@ export default function RoomPage({ params }) {
                   )}
 
                   {/* Oyuncular */}
+                  {members.map(member => {
+                    const kp = koPreds[`${member.player_id}:${match.id}`] || {};
+                    const c = pc(member.player_id);
+                    const isMe = member.player_id === playerId;
+                    const hasR = !!kr.winner;
+                    return (
+                      <div key={member.player_id} style={{ padding:"10px 12px", borderRadius:10, marginBottom:6, background:hasR&&kp.winner===kr.winner?"#041a0a":"#0f172a", border:`1px solid ${hasR&&kp.winner===kr.winner?"#16a34a40":c.bg+"30"}` }}>
+                        <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8 }}>
+                          <div style={{ width:8, height:8, borderRadius:4, background:c.bg }}/>
+                          <span style={{ fontSize:14, fontWeight:800, color:c.ring, flex:1 }}>{member.name}</span>
+                          {hasR && <span style={{ fontSize:13 }}>
+                            {kp.winner===kr.winner?"✅":"❌"}
+                            {kr.method&&kp.method?(kp.method===kr.method?"✅":"❌"):""}
+                            {kr.ou&&kp.ou?(kp.ou===kr.ou?"✅":"❌"):""}
+                            {kr.goal_time&&kp.goal_time?(kp.goal_time===kr.goal_time?"✅":"❌"):""}
+                            {kr.first_goal&&kp.first_goal?(kp.first_goal===kr.first_goal?"✅":"❌"):""}
+                            {kr.penalty_yn&&kp.penalty_yn?(kp.penalty_yn===kr.penalty_yn?"✅":"❌"):""}
+                            {kr.red_card_yn&&kp.red_card_yn?(kp.red_card_yn===kr.red_card_yn?"✅":"❌"):""}
+                            {kr.var_yn&&kp.var_yn?(kp.var_yn===kr.var_yn?"✅":"❌"):""}
+                          </span>}
+                        </div>
+                        {[
+                          ["Kim?","winner",[match.home,match.away],"#c9a84c"],
+                          ["Nasıl?","method",[["90","90dk"],["extra","Uzatma"],["penalty","Penaltı"]],null],
+                          ["A/Ü","ou",[["alt","⬇ Alt"],["ust","⬆ Üst"]],null],
+                          ["Dakika","goal_time",GOAL_TIME_SLOTS,"#8b5cf6"],
+                          ["İlk G","first_goal",[match.home,match.away],"#f97316"],
+                          ["Penaltı","penalty_yn",[["evet","✅ Olur"],["hayir","❌ Olmaz"]],"#ef4444"],
+                          ["Kırmızı","red_card_yn",[["evet","✅ Olur"],["hayir","❌ Olmaz"]],"#ef4444"],
+                          ["VAR","var_yn",[["evet","✅ Gider"],["hayir","❌ Gitmez"]],"#3b82f6"],
+                        ].map(([label,field,opts,activeColor]) => (
+                          <div key={field} style={{ display:"flex", alignItems:"center", gap:5, marginBottom:5, paddingLeft:16, flexWrap:"wrap" }}>
+                            <span style={{ fontSize:13, color:"#475569", fontWeight:600, minWidth:44 }}>{label}</span>
+                            {(field==="method"||field==="ou"||field==="goal_time"||field==="penalty_yn"||field==="red_card_yn"||field==="var_yn") ? opts.map(([v,lbl]) => (
+                              <button key={v} disabled={!isMe||locked} onClick={() => saveKoPred(match.id,field,v)} style={{
+                                padding:"4px 8px", borderRadius:6, border:"none", cursor:isMe&&!locked?"pointer":"default",
+                                opacity:!isMe&&!kp[field]?0.4:1,
+                                background:kp[field]===v?(field==="method"?(v==="90"?"#6366f1":v==="extra"?"#f59e0b":"#ec4899"):field==="ou"?(v==="alt"?"#6366f1":"#ec4899"):(activeColor||"#8b5cf6")):"#1e293b",
+                                color:kp[field]===v?"#fff":"#64748b", fontSize:12, fontWeight:kp[field]===v?700:400,
+                              }}>{lbl}</button>
+                            )) : opts.map(t => (
+                              <button key={t} disabled={!isMe||locked} onClick={() => saveKoPred(match.id,field,t)} style={{
+                                padding:"4px 10px", borderRadius:6, border:"none", cursor:isMe&&!locked?"pointer":"default",
+                                opacity:!isMe&&!kp[field]?0.4:1,
+                                background:kp[field]===t?(activeColor||"#c9a84c"):"#1e293b",
+                                color:kp[field]===t?"#fff":"#64748b", fontSize:13, fontWeight:kp[field]===t?700:400,
+                              }}>{FLAGS[t]||""} {shortName(t)}</button>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+
+      {/* ═══ SEMI FINALS ═══ */}
+      {view === "sf" && (
+        <div className="px-4">
+          <div style={{ borderRadius:14, overflow:"hidden", border:"1px solid #1e293b", background:"#111827" }}>
+            <div style={{ padding:"14px 18px", background:"linear-gradient(135deg,#2d0028,#0f172a)", borderBottom:"2px solid #c9a84c30" }}>
+              <span style={{ fontSize:16, fontWeight:900, color:"#c9a84c" }}>⭐ YARI FİNAL</span>
+              <div style={{ fontSize:13, color:"#64748b", marginTop:4 }}>Kazanan 2p • Nasıl 3/4/5p • A/Ü 1p • Dakika 10p • İlk Gol / Penaltı / Kırmızı / VAR 5p</div>
+            </div>
+            {KNOCKOUT_SF.map((match, idx) => {
+              const kr = koResults[match.id] || {};
+              const locked = isLocked(match.date);
+              const METHODS = [["90","90 dk"],["extra","Uzatma"],["penalty","Penaltı"]];
+              return (
+                <div key={match.id} style={{ padding:18, borderBottom:idx<KNOCKOUT_SF.length-1?"1px solid #1e293b30":"none", background:kr.winner?"#041a0a":"transparent" }}>
+                  <div style={{ textAlign:"center", marginBottom:10 }}>
+                    <span style={{ fontSize:14, color:locked?"#ef4444":"#c9a84c", fontWeight:700 }}>
+                      {locked?"🔒 ":"🕐 "}{formatTR(match.date)}
+                    </span>
+                  </div>
+                  <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:14, marginBottom:14 }}>
+                    <div style={{ flex:1, textAlign:"center" }}>
+                      <span style={{ fontSize:36, display:"block", marginBottom:4 }}>{FLAGS[match.home]}</span>
+                      <span style={{ fontSize:15, fontWeight:700 }}>{shortName(match.home)}</span>
+                    </div>
+                    <span style={{ fontSize:15, fontWeight:900, color:"#475569", background:"#1e293b", borderRadius:20, padding:"5px 14px" }}>VS</span>
+                    <div style={{ flex:1, textAlign:"center" }}>
+                      <span style={{ fontSize:36, display:"block", marginBottom:4 }}>{FLAGS[match.away]}</span>
+                      <span style={{ fontSize:15, fontWeight:700 }}>{shortName(match.away)}</span>
+                    </div>
+                  </div>
+                  {isAdmin && (
+                    <div style={{ marginBottom:14, padding:"12px", borderRadius:10, background:"#0a1628", border:"1px solid #1e293b" }}>
+                      {[
+                        ["KİM?","winner",[match.home,match.away]],
+                        ["NASIL?","method_btn",METHODS],
+                        ["A/Ü","ou_btn",[["alt","⬇ Alt"],["ust","⬆ Üst"]]],
+                        ["DAKİKA","goal_time_btn",GOAL_TIME_SLOTS],
+                        ["İLK G","first_goal",[match.home,match.away]],
+                        ["PENALTI","penalty_yn_btn",[["evet","✅ Olur"],["hayir","❌ Olmaz"]]],
+                        ["KIRMIZI","red_card_yn_btn",[["evet","✅ Olur"],["hayir","❌ Olmaz"]]],
+                        ["VAR","var_yn_btn",[["evet","✅ Gider"],["hayir","❌ Gitmez"]]],
+                      ].map(([label,type,opts]) => (
+                        <div key={label} style={{ display:"flex", alignItems:"center", gap:6, marginBottom:6, flexWrap:"wrap" }}>
+                          <span style={{ fontSize:14, fontWeight:800, color:"#475569", minWidth:50 }}>{label}</span>
+                          {type==="method_btn" ? opts.map(([v,lbl]) => (
+                            <button key={v} onClick={() => saveKoResult(match.id,"method",v)} style={{ padding:"5px 10px", borderRadius:8, cursor:"pointer", border:kr.method===v?"2px solid #16a34a":"1px solid #334155", background:kr.method===v?"#16a34a":"transparent", color:kr.method===v?"#fff":"#64748b", fontSize:13, fontWeight:kr.method===v?700:400 }}>{lbl}</button>
+                          )) : type==="ou_btn" ? opts.map(([v,lbl]) => (
+                            <button key={v} onClick={() => saveKoResult(match.id,"ou",v)} style={{ padding:"5px 12px", borderRadius:8, cursor:"pointer", border:kr.ou===v?"2px solid #16a34a":"1px solid #334155", background:kr.ou===v?"#16a34a":"transparent", color:kr.ou===v?"#fff":"#64748b", fontSize:13, fontWeight:kr.ou===v?700:400 }}>{lbl}</button>
+                          )) : type==="goal_time_btn" ? opts.map(([v,lbl]) => (
+                            <button key={v} onClick={() => saveKoResult(match.id,"goal_time",v)} style={{ padding:"5px 8px", borderRadius:8, cursor:"pointer", border:kr.goal_time===v?"2px solid #16a34a":"1px solid #334155", background:kr.goal_time===v?"#16a34a":"transparent", color:kr.goal_time===v?"#fff":"#64748b", fontSize:12, fontWeight:kr.goal_time===v?700:400 }}>{lbl}</button>
+                          )) : type==="penalty_yn_btn" ? opts.map(([v,lbl]) => (
+                            <button key={v} onClick={() => saveKoResult(match.id,"penalty_yn",v)} style={{ padding:"5px 10px", borderRadius:8, cursor:"pointer", border:kr.penalty_yn===v?"2px solid #16a34a":"1px solid #334155", background:kr.penalty_yn===v?"#16a34a":"transparent", color:kr.penalty_yn===v?"#fff":"#64748b", fontSize:13, fontWeight:kr.penalty_yn===v?700:400 }}>{lbl}</button>
+                          )) : type==="red_card_yn_btn" ? opts.map(([v,lbl]) => (
+                            <button key={v} onClick={() => saveKoResult(match.id,"red_card_yn",v)} style={{ padding:"5px 10px", borderRadius:8, cursor:"pointer", border:kr.red_card_yn===v?"2px solid #16a34a":"1px solid #334155", background:kr.red_card_yn===v?"#16a34a":"transparent", color:kr.red_card_yn===v?"#fff":"#64748b", fontSize:13, fontWeight:kr.red_card_yn===v?700:400 }}>{lbl}</button>
+                          )) : type==="var_yn_btn" ? opts.map(([v,lbl]) => (
+                            <button key={v} onClick={() => saveKoResult(match.id,"var_yn",v)} style={{ padding:"5px 10px", borderRadius:8, cursor:"pointer", border:kr.var_yn===v?"2px solid #16a34a":"1px solid #334155", background:kr.var_yn===v?"#16a34a":"transparent", color:kr.var_yn===v?"#fff":"#64748b", fontSize:13, fontWeight:kr.var_yn===v?700:400 }}>{lbl}</button>
+                          )) : opts.map(t => (
+                            <button key={t} onClick={() => saveKoResult(match.id,type,t)} style={{ padding:"5px 12px", borderRadius:8, cursor:"pointer", border:kr[type]===t?"2px solid #16a34a":"1px solid #334155", background:kr[type]===t?"#16a34a":"transparent", color:kr[type]===t?"#fff":"#64748b", fontSize:14, fontWeight:kr[type]===t?700:400 }}>{FLAGS[t]||""} {shortName(t)}</button>
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {!isAdmin && kr.winner && (
+                    <div style={{ textAlign:"center", marginBottom:12, padding:"8px", borderRadius:8, background:"#16a34a20", border:"1px solid #16a34a40" }}>
+                      <span style={{ fontSize:14, fontWeight:700, color:"#4ade80" }}>
+                        {FLAGS[kr.winner]} {kr.winner} — {kr.method==="90"?"90dk":kr.method==="extra"?"Uzatma":"Penaltı"}
+                        {kr.ou?` • ${kr.ou==="alt"?"⬇":"⬆"}`:""}{kr.first_goal?` • İlk: ${FLAGS[kr.first_goal]}`:""}
+                        {kr.goal_time?` • ${kr.goal_time}'`:""}{kr.penalty_yn?` • Pen:${kr.penalty_yn==="evet"?"✅":"❌"}`:""}{kr.red_card_yn?` • Kır:${kr.red_card_yn==="evet"?"✅":"❌"}`:""}{kr.var_yn?` • VAR:${kr.var_yn==="evet"?"✅":"❌"}`:""}
+                      </span>
+                    </div>
+                  )}
                   {members.map(member => {
                     const kp = koPreds[`${member.player_id}:${match.id}`] || {};
                     const c = pc(member.player_id);

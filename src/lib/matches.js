@@ -269,3 +269,9 @@ export const GOAL_TIME_SLOTS = [
   ["60-75", "60-75'"],
   ["75-90", "75-90'"],
 ];
+
+// Yarı Final
+export const KNOCKOUT_SF = [
+  { id:"SF-1", home:"Fransa", away:"İspanya", date:"2026-07-14T19:00:00Z" },
+  { id:"SF-2", home:"İngiltere", away:"Arjantin", date:"2026-07-15T19:00:00Z" },
+];
